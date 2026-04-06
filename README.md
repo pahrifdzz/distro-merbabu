@@ -1,36 +1,159 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
+🏔️ Distro Merbabu — Website Marketplace
+<div align="center">
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=for-the-badge&logo=node.js&logoColor=white)
+<br/>
+Website marketplace modern untuk toko pakaian Distro Merbabu.
+Dibuat sebagai project skripsi dengan teknologi web terkini.
+Demo · Laporan Bug · Minta Fitur
+</div>
+---
+📋 Daftar Isi
+Tentang Project
+Fitur
+Tech Stack
+Cara Install
+Struktur Folder
+Screenshot
+Kontribusi
+Lisensi
+---
+🏔️ Tentang Project
+Distro Merbabu adalah website marketplace yang dirancang untuk memudahkan proses jual beli pakaian distro secara online. Project ini dibuat sebagai tugas akhir (skripsi) dengan menggunakan teknologi web modern berbasis Next.js.
+Website ini memungkinkan pelanggan untuk melihat katalog produk, melihat detail produk, dan melakukan pembelian secara online. Sementara admin dapat mengelola produk, pesanan, dan data pelanggan melalui dashboard khusus.
+---
+✨ Fitur
+🟢 Sudah Tersedia
+🏠 Halaman Beranda — Menampilkan daftar produk terbaru
+🛍️ Halaman Semua Produk — Katalog lengkap semua produk
+📄 Halaman Detail Produk — Informasi lengkap tiap produk
+🧭 Navbar Navigasi — Navigasi antar halaman yang responsif
+🃏 Komponen KartuProduk — Komponen reusable untuk tampilan produk
+🗄️ Database Produk — Data produk tersimpan di Supabase PostgreSQL
+🔗 Dynamic Routing — URL unik untuk setiap produk
+🔜 Akan Datang
+🔐 Autentikasi User — Sistem login & register
+🛒 Keranjang Belanja — Tambah & kelola produk di keranjang
+📦 Sistem Pesanan — Proses checkout dan pelacakan pesanan
+👨‍💼 Dashboard Admin — Kelola produk, pesanan, dan pengguna
+📸 Upload Foto Produk — Upload dan manajemen gambar produk
+🔍 Filter & Pencarian — Cari produk berdasarkan nama atau kategori
+---
+🛠️ Tech Stack
+Teknologi	Versi	Kegunaan
+Next.js	15	Framework utama (App Router)
+Tailwind CSS	3	Styling & UI
+Prisma ORM	7	Manajemen database
+PostgreSQL	-	Database relasional
+Supabase	-	Hosting database cloud
+Node.js	22	Runtime JavaScript
+---
+🚀 Cara Install
+Prasyarat
+Pastikan kamu sudah menginstall:
+Node.js versi 18 ke atas
+Git
+Akun Supabase (gratis)
+Langkah Instalasi
+1. Clone repository
+```bash
+git clone https://github.com/username/distro-merbabu.git
+cd distro-merbabu
+```
+2. Install dependencies
+```bash
+npm install
+```
+3. Setup environment variable
+Buat file `.env` di root folder:
+```env
+DATABASE\_URL="postgresql://postgres:PASSWORD@db.xxxxx.supabase.co:5432/postgres"
+```
+Ganti `PASSWORD` dan `xxxxx` dengan kredensial Supabase kamu.
+4. Generate Prisma Client
+```bash
+npx prisma generate
+```
+5. Jalankan migrasi database
+```bash
+npx prisma migrate dev --name init
+```
+6. Isi data awal (seed)
+```bash
+node prisma/seed.js
+```
+7. Jalankan project
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Buka http://localhost:3000 di browser kamu. 🎉
+---
+📁 Struktur Folder
+```
+distro-merbabu/
+├── prisma/
+│   ├── schema.prisma       # Skema database
+│   └── seed.js             # Data awal database
+├── src/
+│   ├── app/
+│   │   ├── page.js         # Halaman beranda
+│   │   ├── layout.js       # Layout utama
+│   │   ├── produk/
+│   │   │   ├── page.js     # Halaman semua produk
+│   │   │   └── \[id]/
+│   │   │       └── page.js # Halaman detail produk
+│   │   └── tentang/
+│   │       └── page.js     # Halaman tentang
+│   ├── components/
+│   │   ├── Navbar.js       # Komponen navigasi
+│   │   └── KartuProduk.js  # Komponen kartu produk
+│   └── lib/
+│       └── prisma.js       # Konfigurasi Prisma Client
+├── prisma.config.ts        # Konfigurasi Prisma ORM
+├── next.config.js          # Konfigurasi Next.js
+├── tailwind.config.js      # Konfigurasi Tailwind CSS
+├── .env                    # Environment variables (jangan di-commit!)
+└── package.json            # Dependencies project
+```
+---
+📸 Screenshot
+<div align="center">
+Halaman Beranda
+![Halaman Beranda](./public/screenshots/beranda.png)
+Halaman Detail Produk
+![Detail Produk](./public/screenshots/detail.png)
+</div>
+> 📝 \*Screenshot akan diperbarui seiring perkembangan project\*
+---
+🗄️ Skema Database
+```
+Produk          User            Pesanan         PesananItem
+──────────      ──────────      ──────────      ──────────
+id              id              id              id
+nama            nama            userId ──┐      pesananId ──┐
+harga           email           total    │      produkId    │
+kategori        password        status   │      jumlah      │
+deskripsi       createdAt       createdAt│      harga       │
+gambar                          └────────┘      └───────────┘
+createdAt
+```
+---
+🤝 Kontribusi
+Kontribusi sangat diterima! Berikut langkah-langkahnya:
+Fork repository ini
+Buat branch fitur baru (`git checkout -b fitur/NamaFitur`)
+Commit perubahan kamu (`git commit -m 'Menambahkan fitur NamaFitur'`)
+Push ke branch (`git push origin fitur/NamaFitur`)
+Buat Pull Request
+---
+📝 Lisensi
+Didistribusikan di bawah Lisensi MIT. Lihat `LICENSE` untuk informasi lebih lanjut.
+---
+<div align="center">
+Dibuat dengan ❤️ sebagai project skripsi
+⭐ Jangan lupa beri bintang kalau project ini membantu!
+</div>
