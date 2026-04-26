@@ -21,18 +21,22 @@ model User {
   nama      String
   email     String    @unique
   password  String
+  role      String    @default("user")
   createdAt DateTime  @default(now())
   pesanan   Pesanan[]
 }
 
 model Pesanan {
-  id        Int           @id @default(autoincrement())
-  userId    Int
-  total     Int
-  status    String        @default("pending")
-  createdAt DateTime      @default(now())
-  user      User          @relation(fields: [userId], references: [id])
-  items     PesananItem[]
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  total         Int
+  status        String        @default("pending")
+  alamat        String?
+  telepon       String?
+  namaPenerima  String?
+  createdAt     DateTime      @default(now())
+  user          User          @relation(fields: [userId], references: [id])
+  items         PesananItem[]
 }
 
 model PesananItem {

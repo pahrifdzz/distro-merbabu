@@ -1,6 +1,7 @@
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import TombolKeranjang from "@/components/TombolKeranjang";
 import prisma from "@/lib/prisma";
+import Link from "next/link";
 
 export default async function DetailProduk({ params }) {
   const { id } = await params;
@@ -23,7 +24,6 @@ export default async function DetailProduk({ params }) {
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
-
       <div className="max-w-5xl mx-auto px-8 py-10">
         <Link
           href="/"
@@ -52,9 +52,8 @@ export default async function DetailProduk({ params }) {
               <p className="text-2xl font-bold text-green-600 mb-4">
                 Rp {item.harga.toLocaleString("id-ID")}
               </p>
-              <button className="bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition">
-                + Masukkan Keranjang
-              </button>
+              {/* Komponen client khusus untuk tombol keranjang */}
+              <TombolKeranjang produk={item} />
             </div>
           </div>
         </div>
