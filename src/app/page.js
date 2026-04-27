@@ -27,6 +27,7 @@ export default async function Home() {
               nama={item.nama}
               harga={item.harga.toLocaleString("id-ID")}
               kategori={item.kategori}
+              gambar={item.gambar}
             />
           ))}
         </div>

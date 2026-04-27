@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import TombolKeranjang from "@/components/TombolKeranjang";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import Image from "next/image";
 
 export default async function DetailProduk({ params }) {
   const { id } = await params;
@@ -34,7 +35,15 @@ export default async function DetailProduk({ params }) {
 
         <div className="bg-white rounded-xl border border-gray-200 p-8 flex gap-10">
           <div className="w-72 h-72 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-gray-400 text-sm">Foto Produk</span>
+            {item.gambar ? (
+              <Image
+                src={item.gambar}
+                alt={item.nama}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-gray-400 text-sm">Foto Produk</span>
+            )}
           </div>
 
           <div className="flex flex-col justify-between">

@@ -3,6 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export async function GET() {
+  const produk = await prisma.produk.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+  return NextResponse.json(produk);
+}
+
 export async function POST(request) {
   const session = await getServerSession(authOptions);
 

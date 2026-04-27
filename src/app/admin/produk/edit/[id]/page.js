@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import supabase from "@/lib/supabase";
-import Image from "next/image";
+import { use } from "react";
 
-export default function TambahProdukPage() {
+export default function EditProdukPage({ params }) {
+  const { id } = use(params);
   const router = useRouter();
   const [form, setForm] = useState({
     nama: "",
@@ -13,17 +13,23 @@ export default function TambahProdukPage() {
     kategori: "",
     deskripsi: "",
   });
-  const [foto, setFoto] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
 
-  const handleFoto = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
-  };
+  useEffect(() => {
+    fetch(`/api/admin/produk/${id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setForm({
+          nama: data.nama,
+          harga: data.harga,
+          kategori: data.kategori,
+          deskripsi: data.deskripsi || "",
+        });
+        setFetching(false);
+      });
+  }, [id]);
 
   const handleSubmit = async () => {
     if (!form.nama || !form.harga || !form.kategori) {
@@ -32,42 +38,15 @@ export default function TambahProdukPage() {
     }
 
     setLoading(true);
-    let gambarUrl = null;
 
-    // Upload foto ke Supabase Storage
-    if (foto) {
-      const namaFile = `${Date.now()}-${foto.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("produk-images")
-        .upload(namaFile, foto);
-
-      if (uploadError) {
-        setError("Gagal upload foto: " + uploadError.message);
-        setLoading(false);
-        return;
-      }
-
-      // Ambil URL publik foto
-      const { data } = supabase.storage
-        .from("produk-images")
-        .getPublicUrl(namaFile);
-
-      gambarUrl = data.publicUrl;
-    }
-
-    // Simpan produk ke database
-    const res = await fetch("/api/admin/produk", {
-      method: "POST",
+    const res = await fetch(`/api/admin/produk/${id}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        harga: parseInt(form.harga),
-        gambar: gambarUrl,
-      }),
+      body: JSON.stringify({ ...form, harga: parseInt(form.harga) }),
     });
 
     if (!res.ok) {
-      setError("Gagal menambah produk");
+      setError("Gagal mengupdate produk");
       setLoading(false);
       return;
     }
@@ -75,9 +54,17 @@ export default function TambahProdukPage() {
     router.push("/admin/produk");
   };
 
+  if (fetching) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <p className="text-gray-400 text-sm">Memuat data produk...</p>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Tambah Produk</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Edit Produk</h1>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-lg">
         {error && (
@@ -87,46 +74,12 @@ export default function TambahProdukPage() {
         )}
 
         <div className="flex flex-col gap-4">
-          {/* Upload foto */}
-          <div>
-            <label className="text-sm font-medium text-gray-800 block mb-1">
-              Foto Produk
-            </label>
-            <div
-              onClick={() => document.getElementById("inputFoto").click()}
-              className="w-full h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 transition overflow-hidden"
-            >
-              {preview ? (
-                <Image
-                  src={preview}
-                  alt="preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-center">
-                  <p className="text-3xl mb-2">📷</p>
-                  <p className="text-sm text-gray-400">
-                    Klik untuk upload foto
-                  </p>
-                </div>
-              )}
-            </div>
-            <input
-              id="inputFoto"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFoto}
-            />
-          </div>
-
           <div>
             <label className="text-sm font-medium text-gray-800 block mb-1">
               Nama Produk
             </label>
             <input
               type="text"
-              placeholder="Masukkan nama produk"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.nama}
               onChange={(e) => setForm({ ...form, nama: e.target.value })}
@@ -139,7 +92,6 @@ export default function TambahProdukPage() {
             </label>
             <input
               type="number"
-              placeholder="Contoh: 120000"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.harga}
               onChange={(e) => setForm({ ...form, harga: e.target.value })}
@@ -169,7 +121,6 @@ export default function TambahProdukPage() {
               Deskripsi
             </label>
             <textarea
-              placeholder="Masukkan deskripsi produk"
               rows={3}
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black resize-none"
               value={form.deskripsi}
@@ -183,7 +134,7 @@ export default function TambahProdukPage() {
               disabled={loading}
               className="bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
             >
-              {loading ? "Menyimpan..." : "Simpan Produk"}
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
             </button>
             <button
               onClick={() => router.back()}

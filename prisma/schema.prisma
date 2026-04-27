@@ -7,13 +7,14 @@ datasource db {
 }
 
 model Produk {
-  id        Int      @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   nama      String
   harga     Int
   kategori  String
   deskripsi String?
   gambar    String?
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
+  items     PesananItem[]
 }
 
 model User {
@@ -46,4 +47,5 @@ model PesananItem {
   jumlah    Int
   harga     Int
   pesanan   Pesanan @relation(fields: [pesananId], references: [id])
+  produk    Produk  @relation(fields: [produkId], references: [id])
 }

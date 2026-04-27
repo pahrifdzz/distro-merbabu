@@ -8,7 +8,11 @@ export default async function KonfirmasiPesanan({ params }) {
   const pesanan = await prisma.pesanan.findUnique({
     where: { id: parseInt(id) },
     include: {
-      items: true,
+      items: {
+        include: {
+          produk: true, // ← include data produk
+        },
+      },
       user: true,
     },
   });
@@ -29,62 +33,68 @@ export default async function KonfirmasiPesanan({ params }) {
       <Navbar />
       <div className="max-w-2xl mx-auto px-8 py-16 text-center">
         <div className="text-5xl mb-4">🎉</div>
-        <h1 className="text-2xl font-bold mb-2">Pesanan Berhasil Dibuat!</h1>
-        <p className="text-gray-500 text-sm mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Pesanan Berhasil Dibuat!
+        </h1>
+        <p className="text-gray-600 text-sm mb-8">
           Terima kasih sudah berbelanja di Distro Merbabu
         </p>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 text-left mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold">Detail Pesanan</h2>
+            <h2 className="font-bold text-gray-900">Detail Pesanan</h2>
             <span className="text-xs bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full font-medium">
               {pesanan.status}
             </span>
           </div>
 
-          <div className="text-sm text-gray-500 mb-4">
+          <div className="text-sm text-gray-600 mb-4 flex flex-col gap-1">
             <p>
               ID Pesanan:{" "}
-              <span className="font-medium text-gray-800">#{pesanan.id}</span>
+              <span className="font-medium text-gray-900">#{pesanan.id}</span>
             </p>
             <p>
               Nama:{" "}
-              <span className="font-medium text-gray-800">
+              <span className="font-medium text-gray-900">
                 {pesanan.namaPenerima}
               </span>
             </p>
             <p>
               Alamat:{" "}
-              <span className="font-medium text-gray-800">
+              <span className="font-medium text-gray-900">
                 {pesanan.alamat}
               </span>
             </p>
             <p>
               Telepon:{" "}
-              <span className="font-medium text-gray-800">
+              <span className="font-medium text-gray-900">
                 {pesanan.telepon}
               </span>
             </p>
           </div>
 
           <div className="border-t border-gray-100 pt-4">
-            <p className="text-sm font-medium mb-3">Item Pesanan:</p>
+            <p className="text-sm font-medium text-gray-900 mb-3">
+              Item Pesanan:
+            </p>
             {pesanan.items.map((item) => (
               <div
                 key={item.id}
-                className="flex justify-between text-sm text-gray-600 mb-1"
+                className="flex justify-between text-sm text-gray-600 mb-2"
               >
+                {/* Tampilkan nama produk, bukan ID */}
                 <span>
-                  Produk #{item.produkId} x{item.jumlah}
+                  {item.produk.nama}{" "}
+                  <span className="text-gray-400">x{item.jumlah}</span>
                 </span>
-                <span>
+                <span className="text-gray-900">
                   Rp {(item.harga * item.jumlah).toLocaleString("id-ID")}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-gray-100 pt-4 mt-4 flex justify-between font-bold">
+          <div className="border-t border-gray-100 pt-4 mt-4 flex justify-between font-bold text-gray-900">
             <span>Total</span>
             <span>Rp {pesanan.total.toLocaleString("id-ID")}</span>
           </div>

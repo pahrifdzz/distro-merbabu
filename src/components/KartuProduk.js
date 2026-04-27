@@ -1,12 +1,21 @@
 import Link from "next/link";
+import Image from "next/image";
 
-export default function KartuProduk({ id, nama, harga, kategori }) {
+export default function KartuProduk({ id, nama, harga, kategori, gambar }) {
   return (
     <Link href={`/produk/${id}`}>
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition cursor-pointer">
-        {/* Area gambar produk */}
-        <div className="h-48 bg-gray-100 flex items-center justify-center">
-          <span className="text-gray-400 text-sm">Foto Produk</span>
+        {/* Foto produk */}
+        <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+          {gambar ? (
+            <Image
+              src={gambar}
+              alt={nama}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-gray-400 text-sm">Foto Produk</span>
+          )}
         </div>
 
         {/* Info produk */}
