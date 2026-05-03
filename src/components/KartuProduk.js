@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 
 export default function KartuProduk({ id, nama, harga, kategori, gambar }) {
   return (
@@ -8,7 +7,8 @@ export default function KartuProduk({ id, nama, harga, kategori, gambar }) {
         {/* Foto produk */}
         <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
           {gambar ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={gambar}
               alt={nama}
               className="w-full h-full object-cover"

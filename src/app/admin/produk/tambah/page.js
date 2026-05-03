@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import supabase from "@/lib/supabase";
 import Image from "next/image";
+import imageCompression from "browser-image-compression";
 
 export default function TambahProdukPage() {
   const router = useRouter();
@@ -18,11 +19,31 @@ export default function TambahProdukPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleFoto = (e) => {
+  const handleFoto = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setFoto(file);
-    setPreview(URL.createObjectURL(file));
+
+    // Validasi tipe file
+    if (!file.type.startsWith("image/")) {
+      setError("File harus berupa gambar!");
+      return;
+    }
+
+    // Kompres otomatis sebelum upload
+    const options = {
+      maxSizeMB: 0.5, // maksimal 500KB setelah dikompres
+      maxWidthOrHeight: 800, // maksimal 800px
+      useWebWorker: true,
+    };
+
+    try {
+      const fileTerkompres = await imageCompression(file, options);
+      setFoto(fileTerkompres);
+      setPreview(URL.createObjectURL(fileTerkompres));
+      setError("");
+    } catch (err) {
+      setError("Gagal memproses foto");
+    }
   };
 
   const handleSubmit = async () => {
@@ -34,12 +55,14 @@ export default function TambahProdukPage() {
     setLoading(true);
     let gambarUrl = null;
 
-    // Upload foto ke Supabase Storage
     if (foto) {
       const namaFile = `${Date.now()}-${foto.name}`;
-      const { error: uploadError } = await supabase.storage
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("produk-images")
         .upload(namaFile, foto);
+
+      console.log("Upload result:", uploadData, uploadError);
 
       if (uploadError) {
         setError("Gagal upload foto: " + uploadError.message);
@@ -47,15 +70,20 @@ export default function TambahProdukPage() {
         return;
       }
 
-      // Ambil URL publik foto
       const { data } = supabase.storage
         .from("produk-images")
         .getPublicUrl(namaFile);
 
       gambarUrl = data.publicUrl;
+      console.log("Gambar URL:", gambarUrl);
     }
 
-    // Simpan produk ke database
+    console.log("Data yang dikirim:", {
+      ...form,
+      harga: parseInt(form.harga),
+      gambar: gambarUrl,
+    });
+
     const res = await fetch("/api/admin/produk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -65,6 +93,9 @@ export default function TambahProdukPage() {
         gambar: gambarUrl,
       }),
     });
+
+    const data = await res.json();
+    console.log("Response API:", data);
 
     if (!res.ok) {
       setError("Gagal menambah produk");
@@ -97,7 +128,8 @@ export default function TambahProdukPage() {
               className="w-full h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 transition overflow-hidden"
             >
               {preview ? (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={preview}
                   alt="preview"
                   className="w-full h-full object-cover"

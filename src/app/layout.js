@@ -1,6 +1,7 @@
 import { Geist } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
+import Footer from "@/components/Footer";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -13,7 +14,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id">
       <body className={geist.className}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="flex flex-col min-h-screen">
+            <div className="flex-1">{children}</div>
+            <Footer />
+          </div>
+        </Providers>
       </body>
     </html>
   );

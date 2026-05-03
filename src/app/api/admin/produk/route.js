@@ -17,10 +17,24 @@ export async function POST(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { nama, harga, kategori, deskripsi } = await request.json();
+  const { nama, harga, kategori, deskripsi, gambar } = await request.json();
+
+  console.log("Data diterima API:", {
+    nama,
+    harga,
+    kategori,
+    deskripsi,
+    gambar,
+  });
 
   const produk = await prisma.produk.create({
-    data: { nama, harga, kategori, deskripsi },
+    data: {
+      nama,
+      harga,
+      kategori,
+      deskripsi,
+      gambar, // ← pastikan baris ini ada
+    },
   });
 
   return NextResponse.json(produk, { status: 201 });
