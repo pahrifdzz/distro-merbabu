@@ -1,9 +1,9 @@
-"use client";
+'use client'
 
-import { useKeranjang } from "@/context/KeranjangContext";
+import { useKeranjang } from '@/context/KeranjangContext'
 
 export default function TombolKeranjang({ produk }) {
-  const { tambahKeKeranjang } = useKeranjang();
+  const { tambahKeKeranjang } = useKeranjang()
 
   const handleTambah = () => {
     tambahKeKeranjang({
@@ -11,9 +11,10 @@ export default function TombolKeranjang({ produk }) {
       nama: produk.nama,
       harga: produk.harga,
       kategori: produk.kategori,
-    });
-    alert(`${produk.nama} ditambahkan ke keranjang!`);
-  };
+      gambar: produk.gambar,  // ← tambahkan ini
+    })
+    alert(`${produk.nama} ditambahkan ke keranjang!`)
+  }
 
   return (
     <button
@@ -22,5 +23,5 @@ export default function TombolKeranjang({ produk }) {
     >
       + Masukkan Keranjang
     </button>
-  );
+  )
 }

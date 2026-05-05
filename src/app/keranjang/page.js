@@ -48,8 +48,17 @@ export default function KeranjangPage() {
                 key={item.id}
                 className="bg-white rounded-xl border border-gray-200 p-4 flex gap-4 items-center"
               >
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
-                  <span className="text-gray-400 text-xs">Foto</span>
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                  {item.gambar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.gambar}
+                      alt={item.nama}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-400 text-xs">Foto</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-400 uppercase">

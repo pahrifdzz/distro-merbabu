@@ -172,23 +172,38 @@ export default function CheckoutPage() {
               <h2 className="font-bold text-gray-900 mb-4">
                 Metode Pembayaran
               </h2>
-              <div className="border border-black rounded-lg p-4 flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-black"></div>
+
+              <div className="border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center shrink-0">
+                    <div className="w-2 h-2 rounded-full bg-black"></div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    Transfer Bank BCA
+                  </span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">
-                  Transfer Bank (Manual)
-                </span>
+
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Nomor Rekening</p>
+                  <p className="text-base font-bold text-gray-900 tracking-wider">
+                    1123 3445 00
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    a/n Distro Merbabu
+                  </p>
+                </div>
+
+                <p className="text-xs text-gray-400 mt-3 leading-relaxed">
+                  Setelah checkout, kamu akan mendapat instruksi pembayaran
+                  lengkap beserta tombol untuk menghubungi admin via WhatsApp.
+                </p>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Setelah checkout, kamu akan mendapat instruksi pembayaran via
-                transfer bank.
-              </p>
             </div>
           </div>
 
           {/* Ringkasan pesanan */}
-          <div className="w-72 shrink-0">
+          {/* Ringkasan pesanan */}
+          <div className="w-full lg:w-72 shrink-0">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="font-bold text-gray-900 mb-4">
                 Ringkasan Pesanan
@@ -196,14 +211,32 @@ export default function CheckoutPage() {
 
               <div className="flex flex-col gap-3 mb-4">
                 {keranjang.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-gray-700">
-                      {item.nama}{" "}
-                      <span className="text-gray-400">x{item.jumlah}</span>
-                    </span>
-                    <span className="text-gray-900">
-                      Rp {(item.harga * item.jumlah).toLocaleString("id-ID")}
-                    </span>
+                  <div key={item.id} className="flex items-center gap-3">
+                    {/* Gambar produk */}
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                      {item.gambar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.gambar}
+                          alt={item.nama}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-gray-300 text-xs">?</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Info produk */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 truncate">
+                        {item.nama}{" "}
+                        <span className="text-gray-400">x{item.jumlah}</span>
+                      </p>
+                      <p className="text-sm text-gray-900 font-medium">
+                        Rp {(item.harga * item.jumlah).toLocaleString("id-ID")}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>

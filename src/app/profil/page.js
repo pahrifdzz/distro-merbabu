@@ -3,10 +3,22 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { useEffect, useState } from "react";
 
 export default function ProfilPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const [jumlahPesanan, setJumlahPesanan] = useState(0);
+
+  useEffect(() => {
+    if (session && session.user.role !== "admin") {
+      fetch("/api/pesanan/user")
+        .then((res) => res.json())
+        .then((data) =>
+          setJumlahPesanan(Array.isArray(data) ? data.length : 0),
+        );
+    }
+  }, [session]);
 
   if (!session) {
     router.push("/login");
@@ -17,7 +29,7 @@ export default function ProfilPage() {
     <main className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="max-w-md mx-auto px-8 py-16">
+      <div className="max-w-md mx-auto px-4 md:px-8 py-12 md:py-16">
         <div className="bg-white rounded-xl border border-gray-200 p-8">
           {/* Avatar */}
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -45,11 +57,37 @@ export default function ProfilPage() {
           <div className="flex flex-col gap-2 mb-6">
             <button
               onClick={() => router.push("/")}
-              className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-50 border border-gray-100"
+              className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-50 border border-gray-100 flex items-center justify-between"
             >
-              🏠 Kembali ke Toko
+              <span>🏠 Kembali ke Toko</span>
             </button>
 
+            {/* Pesanan Saya — hanya untuk user biasa */}
+            {session.user.role !== "admin" && (
+              <button
+                onClick={() => router.push("/pesanan")}
+                className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-50 border border-gray-100 flex items-center justify-between"
+              >
+                <span>📦 Pesanan Saya</span>
+                {jumlahPesanan > 0 && (
+                  <span className="bg-black text-white text-xs px-2 py-0.5 rounded-full">
+                    {jumlahPesanan}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Keranjang — hanya untuk user biasa */}
+            {session.user.role !== "admin" && (
+              <button
+                onClick={() => router.push("/keranjang")}
+                className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-50 border border-gray-100"
+              >
+                🛒 Keranjang Belanja
+              </button>
+            )}
+
+            {/* Dashboard Admin — hanya untuk admin */}
             {session.user.role === "admin" && (
               <button
                 onClick={() => router.push("/admin")}
@@ -58,13 +96,6 @@ export default function ProfilPage() {
                 📊 Dashboard Admin
               </button>
             )}
-
-            <button
-              onClick={() => router.push("/keranjang")}
-              className="w-full text-left px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-50 border border-gray-100"
-            >
-              🛒 Keranjang Belanja
-            </button>
           </div>
 
           {/* Tombol logout */}
