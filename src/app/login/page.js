@@ -32,10 +32,22 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-xl border border-gray-200 p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Masuk</h1>
-        <p className="text-gray-600 text-sm mb-6">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/merbabu.png"
+            alt="Distro Merbabu"
+            className="h-14 w-auto"
+          />
+        </div>
+
+        <h1 className="text-2xl font-bold text-gray-900 mb-2 text-center">
+          Masuk
+        </h1>
+        <p className="text-gray-600 text-sm mb-6 text-center">
           Masuk ke akun Distro Merbabu kamu
         </p>
 
@@ -88,6 +100,16 @@ export default function LoginPage() {
             className="text-black font-medium hover:underline"
           >
             Daftar di sini
+          </Link>
+        </p>
+
+        {/* Tambahkan ini */}
+        <p className="text-center text-sm text-gray-500 mt-2">
+          <Link
+            href="/lupa-password"
+            className="hover:text-black hover:underline"
+          >
+            Lupa password?
           </Link>
         </p>
       </div>

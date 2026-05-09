@@ -5,19 +5,16 @@ export default function Footer() {
     <footer className="mt-16">
       <div style={{ background: "#1D9E75" }} className="px-6 md:px-8 pt-10">
         <div className="max-w-5xl mx-auto">
-          {/* 1 kolom di mobile, 3 kolom di desktop */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
+            {/* Brand */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <div
-                    className="w-4 h-4 rounded-sm"
-                    style={{ background: "#1D9E75" }}
-                  ></div>
-                </div>
-                <span className="text-white font-bold text-base">
-                  Distro Merbabu
-                </span>
+              <div className="mb-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/merbabu.png"
+                  alt="Distro Merbabu"
+                  className="h-12 w-auto"
+                />
               </div>
               <p
                 style={{ color: "#9FE1CB" }}
@@ -54,6 +51,7 @@ export default function Footer() {
               </div>
             </div>
 
+            {/* Navigasi */}
             <div>
               <p
                 style={{ color: "#5DCAA5" }}
@@ -93,6 +91,7 @@ export default function Footer() {
               </div>
             </div>
 
+            {/* Kontak */}
             <div>
               <p
                 style={{ color: "#5DCAA5" }}

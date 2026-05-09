@@ -8,7 +8,6 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Overlay mobile */}
       {sidebarTerbuka && (
         <div
           className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden"
@@ -16,7 +15,6 @@ export default function AdminLayout({ children }) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
         fixed md:static inset-y-0 left-0 z-30
@@ -26,9 +24,15 @@ export default function AdminLayout({ children }) {
         md:translate-x-0
       `}
       >
-        <div className="px-6 py-5 border-b border-gray-200">
-          <p className="font-bold text-gray-900">Merbabu Outdoor</p>
-          <p className="text-xs text-gray-400 mt-0.5">Dashboard Admin</p>
+        {/* Logo di sidebar */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/merbabu.png"
+            alt="Distro Merbabu"
+            className="h-8 w-auto mb-1"
+          />
+          <p className="text-xs text-gray-400">Dashboard Admin</p>
         </div>
 
         <nav className="flex flex-col gap-1 p-4 flex-1">
@@ -79,9 +83,7 @@ export default function AdminLayout({ children }) {
         </div>
       </aside>
 
-      {/* Konten utama */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header mobile */}
         <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setSidebarTerbuka(true)}
@@ -89,7 +91,8 @@ export default function AdminLayout({ children }) {
           >
             ☰
           </button>
-          <span className="font-bold text-gray-900">Dashboard Admin</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/merbabu.png" alt="Distro Merbabu" className="h-7 w-auto" />
         </div>
 
         <main className="flex-1 p-4 md:p-8 overflow-auto">{children}</main>

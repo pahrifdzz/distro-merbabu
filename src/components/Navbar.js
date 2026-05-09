@@ -11,10 +11,16 @@ export default function Navbar() {
   const [menuTerbuka, setMenuTerbuka] = useState(false);
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-200 px-6 py-3 sticky top-0 z-50">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold text-gray-900">
-          Distro Merbabu
+        {/* Logo */}
+        <Link href="/">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/merbabu.png"
+            alt="Distro Merbabu"
+            className="h-10 w-auto"
+          />
         </Link>
 
         {/* Menu desktop */}
