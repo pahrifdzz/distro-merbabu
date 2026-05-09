@@ -13,6 +13,7 @@ model Produk {
   kategori  String
   deskripsi String?
   gambar    String?
+  stok      Int           @default(0)
   createdAt DateTime      @default(now())
   items     PesananItem[]
 }
@@ -23,6 +24,8 @@ model User {
   email     String    @unique
   password  String
   role      String    @default("user")
+  telepon   String?
+  alamat    String?
   createdAt DateTime  @default(now())
   pesanan   Pesanan[]
 }
@@ -36,6 +39,8 @@ model Pesanan {
   telepon          String?
   namaPenerima     String?
   buktiPembayaran  String?
+  ongkir           Int           @default(0)
+  kotaTujuan       String?
   createdAt        DateTime      @default(now())
   user             User          @relation(fields: [userId], references: [id])
   items            PesananItem[]
@@ -49,4 +54,12 @@ model PesananItem {
   harga     Int
   pesanan   Pesanan @relation(fields: [pesananId], references: [id])
   produk    Produk  @relation(fields: [produkId], references: [id])
+}
+
+model OngkirKota {
+  id        Int      @id @default(autoincrement())
+  kota      String   @unique
+  biaya     Int
+  estimasi  String
+  createdAt DateTime @default(now())
 }

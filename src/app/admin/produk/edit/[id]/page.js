@@ -12,6 +12,7 @@ export default function EditProdukPage({ params }) {
     harga: "",
     kategori: "",
     deskripsi: "",
+    stok: "",
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -26,6 +27,7 @@ export default function EditProdukPage({ params }) {
           harga: data.harga,
           kategori: data.kategori,
           deskripsi: data.deskripsi || "",
+          stok: data.stok ?? 0, // ← pastikan stok ikut diload
         });
         setFetching(false);
       });
@@ -42,7 +44,13 @@ export default function EditProdukPage({ params }) {
     const res = await fetch(`/api/admin/produk/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, harga: parseInt(form.harga) }),
+      body: JSON.stringify({
+        nama: form.nama,
+        harga: parseInt(form.harga),
+        kategori: form.kategori,
+        deskripsi: form.deskripsi,
+        stok: parseInt(form.stok) || 0, // ← pastikan stok ikut dikirim
+      }),
     });
 
     if (!res.ok) {
@@ -95,6 +103,19 @@ export default function EditProdukPage({ params }) {
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.harga}
               onChange={(e) => setForm({ ...form, harga: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-800 block mb-1">
+              Stok
+            </label>
+            <input
+              type="number"
+              min="0"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+              value={form.stok}
+              onChange={(e) => setForm({ ...form, stok: e.target.value })}
             />
           </div>
 

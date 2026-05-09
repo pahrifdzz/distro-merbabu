@@ -60,6 +60,13 @@ export default function AdminLayout({ children }) {
           >
             👥 Pengguna
           </Link>
+          <Link
+            href="/admin/ongkir"
+            onClick={() => setSidebarTerbuka(false)}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          >
+            🚚 Ongkir
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-200">

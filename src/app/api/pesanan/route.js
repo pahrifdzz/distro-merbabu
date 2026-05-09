@@ -14,13 +14,13 @@ export async function POST(request) {
       );
     }
 
-    const { items, total, alamat, telepon, nama } = await request.json();
+    const { items, total, alamat, telepon, nama, ongkir, kotaTujuan } =
+      await request.json();
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "Keranjang kosong" }, { status: 400 });
     }
 
-    // Buat pesanan di database
     const pesanan = await prisma.pesanan.create({
       data: {
         userId: session.user.id,
@@ -28,6 +28,8 @@ export async function POST(request) {
         alamat,
         telepon,
         namaPenerima: nama,
+        ongkir: ongkir || 0,
+        kotaTujuan: kotaTujuan || null,
         status: "pending",
         items: {
           create: items.map((item) => ({

@@ -167,6 +167,27 @@ export default function KonfirmasiPesanan() {
             ))}
           </div>
 
+          <div className="border-t border-gray-100 pt-4 mt-2">
+            <div className="flex justify-between text-sm text-gray-600 mb-2">
+              <span>Subtotal produk</span>
+              <span>
+                Rp {(pesanan.total - pesanan.ongkir).toLocaleString("id-ID")}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600 mb-3">
+              <span>Ongkir ke {pesanan.kotaTujuan}</span>
+              <span className={pesanan.ongkir === 0 ? "text-green-600" : ""}>
+                {pesanan.ongkir === 0
+                  ? "Gratis"
+                  : `Rp ${pesanan.ongkir.toLocaleString("id-ID")}`}
+              </span>
+            </div>
+            <div className="flex justify-between font-bold text-gray-900">
+              <span>Total Bayar</span>
+              <span>Rp {pesanan.total.toLocaleString("id-ID")}</span>
+            </div>
+          </div>
+
           <div className="border-t border-gray-100 pt-4 mt-2 flex justify-between font-bold text-gray-900">
             <span>Total</span>
             <span>Rp {pesanan.total.toLocaleString("id-ID")}</span>

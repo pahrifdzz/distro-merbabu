@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import { useKeranjang } from '@/context/KeranjangContext'
+import { useKeranjang } from "@/context/KeranjangContext";
 
 export default function TombolKeranjang({ produk }) {
-  const { tambahKeKeranjang } = useKeranjang()
+  const { tambahKeKeranjang } = useKeranjang();
 
   const handleTambah = () => {
     tambahKeKeranjang({
@@ -11,9 +11,20 @@ export default function TombolKeranjang({ produk }) {
       nama: produk.nama,
       harga: produk.harga,
       kategori: produk.kategori,
-      gambar: produk.gambar,  // ← tambahkan ini
-    })
-    alert(`${produk.nama} ditambahkan ke keranjang!`)
+      gambar: produk.gambar,
+    });
+    alert(`${produk.nama} ditambahkan ke keranjang!`);
+  };
+
+  if (produk.stok === 0) {
+    return (
+      <button
+        disabled
+        className="bg-gray-200 text-gray-400 px-8 py-3 rounded-full cursor-not-allowed text-sm"
+      >
+        Stok Habis
+      </button>
+    );
   }
 
   return (
@@ -23,5 +34,5 @@ export default function TombolKeranjang({ produk }) {
     >
       + Masukkan Keranjang
     </button>
-  )
+  );
 }

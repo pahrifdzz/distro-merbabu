@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Navbar from "@/components/Navbar";
@@ -12,6 +12,9 @@ export default function CheckoutPage() {
   const { data: session } = useSession();
   const { keranjang, totalHarga, kosongkanKeranjang } = useKeranjang();
   const [loading, setLoading] = useState(false);
+  const [profil, setProfil] = useState(null);
+  const [daftarOngkir, setDaftarOngkir] = useState([]);
+  const [ongkirDipilih, setOngkirDipilih] = useState(null);
   const [form, setForm] = useState({
     nama: "",
     alamat: "",
@@ -19,11 +22,51 @@ export default function CheckoutPage() {
     telepon: "",
   });
 
+  useEffect(() => {
+    if (session) {
+      fetch("/api/profil")
+        .then((res) => res.json())
+        .then((data) => setProfil(data));
+    }
+    fetch("/api/ongkir")
+      .then((res) => res.json())
+      .then((data) => setDaftarOngkir(data));
+  }, [session]);
+
+  useEffect(() => {
+    if (profil?.telepon && profil?.alamat) {
+      setForm({
+        nama: profil.nama || "",
+        telepon: profil.telepon || "",
+        alamat: profil.alamat || "",
+        kota: "",
+      });
+    }
+  }, [profil]);
+
+  const handlePilihKota = (kota) => {
+    setForm({ ...form, kota });
+    const ongkir = daftarOngkir.find((o) => o.kota === kota);
+    setOngkirDipilih(ongkir || null);
+  };
+
+  const isiDariProfil = () => {
+    if (!profil) return;
+    setForm({
+      nama: profil.nama || "",
+      telepon: profil.telepon || "",
+      alamat: profil.alamat || "",
+      kota: form.kota,
+    });
+  };
+
+  const totalBayar = totalHarga + (ongkirDipilih?.biaya || 0);
+
   if (keranjang.length === 0) {
     return (
       <main className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="max-w-5xl mx-auto px-8 py-20 text-center">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-20 text-center">
           <p className="text-4xl mb-4">🛒</p>
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             Keranjang kamu kosong
@@ -43,7 +86,7 @@ export default function CheckoutPage() {
     return (
       <main className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="max-w-5xl mx-auto px-8 py-20 text-center">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-20 text-center">
           <p className="text-4xl mb-4">🔐</p>
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             Kamu belum login
@@ -68,6 +111,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!ongkirDipilih) {
+      alert("Pilih kota tujuan terlebih dahulu!");
+      return;
+    }
+
     setLoading(true);
 
     const res = await fetch("/api/pesanan", {
@@ -75,10 +123,12 @@ export default function CheckoutPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         items: keranjang,
-        total: totalHarga,
+        total: totalBayar,
         alamat: `${form.alamat}, ${form.kota}`,
         telepon: form.telepon,
         nama: form.nama,
+        ongkir: ongkirDipilih.biaya,
+        kotaTujuan: form.kota,
       }),
     });
 
@@ -97,16 +147,40 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-5xl mx-auto px-8 py-10">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Checkout</h1>
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 md:py-10">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">
+          Checkout
+        </h1>
 
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
           {/* Form pengiriman */}
           <div className="flex-1">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4">
-              <h2 className="font-bold text-gray-900 mb-4">
-                Informasi Pengiriman
-              </h2>
+            <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-gray-900">
+                  Informasi Pengiriman
+                </h2>
+                {profil?.telepon && profil?.alamat && (
+                  <button
+                    onClick={isiDariProfil}
+                    className="text-xs bg-gray-900 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 transition"
+                  >
+                    📋 Samakan dengan profil
+                  </button>
+                )}
+              </div>
+
+              {profil && (!profil.telepon || !profil.alamat) && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-xs text-yellow-700">
+                    💡 Lengkapi{" "}
+                    <Link href="/profil" className="underline font-medium">
+                      data profil
+                    </Link>{" "}
+                    kamu agar bisa auto-fill saat checkout!
+                  </p>
+                </div>
+              )}
 
               <div className="flex flex-col gap-4">
                 <div>
@@ -152,27 +226,81 @@ export default function CheckoutPage() {
                   />
                 </div>
 
+                {/* Dropdown kota dengan ongkir otomatis */}
                 <div>
                   <label className="text-sm font-medium text-gray-800 block mb-1">
-                    Kota
+                    Kota Tujuan
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Masukkan kota"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                  <select
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
                     value={form.kota}
-                    onChange={(e) => setForm({ ...form, kota: e.target.value })}
-                  />
+                    onChange={(e) => handlePilihKota(e.target.value)}
+                  >
+                    <option value="">Pilih kota tujuan</option>
+                    {daftarOngkir.map((o) => (
+                      <option key={o.id} value={o.kota}>
+                        {o.kota} —{" "}
+                        {o.biaya === 0
+                          ? "Gratis"
+                          : `Rp ${o.biaya.toLocaleString("id-ID")}`}{" "}
+                        ({o.estimasi})
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Info ongkir setelah pilih kota */}
+                  {ongkirDipilih && (
+                    <div
+                      className={`mt-2 rounded-lg p-3 flex items-center justify-between ${
+                        ongkirDipilih.biaya === 0
+                          ? "bg-green-50 border border-green-200"
+                          : "bg-blue-50 border border-blue-200"
+                      }`}
+                    >
+                      <div>
+                        <p
+                          className={`text-xs font-medium ${
+                            ongkirDipilih.biaya === 0
+                              ? "text-green-700"
+                              : "text-blue-700"
+                          }`}
+                        >
+                          {ongkirDipilih.biaya === 0
+                            ? "🎉 Gratis ongkir!"
+                            : "🚚 Biaya pengiriman"}
+                        </p>
+                        <p
+                          className={`text-xs mt-0.5 ${
+                            ongkirDipilih.biaya === 0
+                              ? "text-green-600"
+                              : "text-blue-600"
+                          }`}
+                        >
+                          Estimasi tiba: {ongkirDipilih.estimasi}
+                        </p>
+                      </div>
+                      <p
+                        className={`text-sm font-bold ${
+                          ongkirDipilih.biaya === 0
+                            ? "text-green-700"
+                            : "text-blue-700"
+                        }`}
+                      >
+                        {ongkirDipilih.biaya === 0
+                          ? "Gratis"
+                          : `Rp ${ongkirDipilih.biaya.toLocaleString("id-ID")}`}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Metode pembayaran */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
               <h2 className="font-bold text-gray-900 mb-4">
                 Metode Pembayaran
               </h2>
-
               <div className="border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center shrink-0">
@@ -182,7 +310,6 @@ export default function CheckoutPage() {
                     Transfer Bank BCA
                   </span>
                 </div>
-
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-1">Nomor Rekening</p>
                   <p className="text-base font-bold text-gray-900 tracking-wider">
@@ -192,7 +319,6 @@ export default function CheckoutPage() {
                     a/n Distro Merbabu
                   </p>
                 </div>
-
                 <p className="text-xs text-gray-400 mt-3 leading-relaxed">
                   Setelah checkout, kamu akan mendapat instruksi pembayaran
                   lengkap beserta tombol untuk menghubungi admin via WhatsApp.
@@ -201,7 +327,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Ringkasan pesanan */}
           {/* Ringkasan pesanan */}
           <div className="w-full lg:w-72 shrink-0">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -212,7 +337,6 @@ export default function CheckoutPage() {
               <div className="flex flex-col gap-3 mb-4">
                 {keranjang.map((item) => (
                   <div key={item.id} className="flex items-center gap-3">
-                    {/* Gambar produk */}
                     <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                       {item.gambar ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -227,7 +351,6 @@ export default function CheckoutPage() {
                         </div>
                       )}
                     </div>
-                    {/* Info produk */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-700 truncate">
                         {item.nama}{" "}
@@ -246,23 +369,49 @@ export default function CheckoutPage() {
                   <span>Subtotal</span>
                   <span>Rp {totalHarga.toLocaleString("id-ID")}</span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-600 mb-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
                   <span>Ongkir</span>
-                  <span className="text-green-600">Gratis</span>
+                  {ongkirDipilih ? (
+                    <span
+                      className={
+                        ongkirDipilih.biaya === 0 ? "text-green-600" : ""
+                      }
+                    >
+                      {ongkirDipilih.biaya === 0
+                        ? "Gratis"
+                        : `Rp ${ongkirDipilih.biaya.toLocaleString("id-ID")}`}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">
+                      Pilih kota dulu
+                    </span>
+                  )}
                 </div>
-                <div className="flex justify-between font-bold text-gray-900">
-                  <span>Total</span>
-                  <span>Rp {totalHarga.toLocaleString("id-ID")}</span>
+                {ongkirDipilih && (
+                  <div className="flex justify-between text-xs text-gray-400 mb-2">
+                    <span>Estimasi tiba</span>
+                    <span>{ongkirDipilih.estimasi}</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-gray-900">
+                  <span>Total Bayar</span>
+                  <span>Rp {totalBayar.toLocaleString("id-ID")}</span>
                 </div>
               </div>
 
               <button
                 onClick={handleCheckout}
-                disabled={loading}
+                disabled={loading || !ongkirDipilih}
                 className="w-full bg-black text-white py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
               >
                 {loading ? "Memproses..." : "Buat Pesanan"}
               </button>
+
+              {!ongkirDipilih && (
+                <p className="text-xs text-gray-400 text-center mt-2">
+                  Pilih kota tujuan untuk melanjutkan
+                </p>
+              )}
             </div>
           </div>
         </div>

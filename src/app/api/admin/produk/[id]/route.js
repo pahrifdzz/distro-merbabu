@@ -28,11 +28,17 @@ export async function PUT(request, { params }) {
   }
 
   const { id } = await params;
-  const { nama, harga, kategori, deskripsi } = await request.json();
+  const { nama, harga, kategori, deskripsi, stok } = await request.json();
 
   const produk = await prisma.produk.update({
     where: { id: parseInt(id) },
-    data: { nama, harga, kategori, deskripsi },
+    data: {
+      nama,
+      harga,
+      kategori,
+      deskripsi,
+      stok: parseInt(stok) || 0, // ← pastikan baris ini ada
+    },
   });
 
   return NextResponse.json(produk);

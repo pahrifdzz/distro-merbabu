@@ -13,6 +13,7 @@ export default function TambahProdukPage() {
     harga: "",
     kategori: "",
     deskripsi: "",
+    stok: "",
   });
   const [foto, setFoto] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -90,6 +91,7 @@ export default function TambahProdukPage() {
       body: JSON.stringify({
         ...form,
         harga: parseInt(form.harga),
+        stok: parseInt(form.stok) || 0,
         gambar: gambarUrl,
       }),
     });
@@ -169,6 +171,19 @@ export default function TambahProdukPage() {
             <label className="text-sm font-medium text-gray-800 block mb-1">
               Harga (Rp)
             </label>
+            <div>
+              <label className="text-sm font-medium text-gray-800 block mb-1">
+                Stok
+              </label>
+              <input
+                type="number"
+                placeholder="Masukkan jumlah stok"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                value={form.stok}
+                onChange={(e) => setForm({ ...form, stok: e.target.value })}
+              />
+            </div>
             <input
               type="number"
               placeholder="Contoh: 120000"

@@ -17,24 +17,11 @@ export async function POST(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { nama, harga, kategori, deskripsi, gambar } = await request.json();
-
-  console.log("Data diterima API:", {
-    nama,
-    harga,
-    kategori,
-    deskripsi,
-    gambar,
-  });
+  const { nama, harga, kategori, deskripsi, gambar, stok } =
+    await request.json();
 
   const produk = await prisma.produk.create({
-    data: {
-      nama,
-      harga,
-      kategori,
-      deskripsi,
-      gambar, // ← pastikan baris ini ada
-    },
+    data: { nama, harga, kategori, deskripsi, gambar, stok: stok || 0 },
   });
 
   return NextResponse.json(produk, { status: 201 });
@@ -48,7 +35,6 @@ export async function DELETE(request) {
   }
 
   const { id } = await request.json();
-
   await prisma.produk.delete({ where: { id } });
 
   return NextResponse.json({ message: "Produk berhasil dihapus" });
