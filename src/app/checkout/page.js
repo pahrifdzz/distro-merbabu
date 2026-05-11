@@ -353,8 +353,15 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-700 truncate">
-                        {item.nama}{" "}
-                        <span className="text-gray-400">x{item.jumlah}</span>
+                        {item.nama}
+                        {item.ukuran && (
+                          <span className="text-gray-400 ml-1">
+                            ({item.ukuran})
+                          </span>
+                        )}
+                        <span className="text-gray-400 ml-1">
+                          x{item.jumlah}
+                        </span>
                       </p>
                       <p className="text-sm text-gray-900 font-medium">
                         Rp {(item.harga * item.jumlah).toLocaleString("id-ID")}

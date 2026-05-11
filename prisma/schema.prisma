@@ -7,15 +7,26 @@ datasource db {
 }
 
 model Produk {
-  id        Int           @id @default(autoincrement())
-  nama      String
-  harga     Int
-  kategori  String
-  deskripsi String?
-  gambar    String?
-  stok      Int           @default(0)
-  createdAt DateTime      @default(now())
-  items     PesananItem[]
+  id         Int            @id @default(autoincrement())
+  nama       String
+  harga      Int
+  kategori   String
+  deskripsi  String?
+  gambar     String?
+  stok       Int            @default(0)
+  createdAt  DateTime       @default(now())
+  items      PesananItem[]
+  fotos      FotoProduk[]
+  ukurans    UkuranProduk[]
+}
+
+model FotoProduk {
+  id        Int      @id @default(autoincrement())
+  produkId  Int
+  url       String
+  urutan    Int      @default(0)
+  createdAt DateTime @default(now())
+  produk    Produk   @relation(fields: [produkId], references: [id])
 }
 
 model User {
@@ -73,4 +84,13 @@ model ResetPassword {
   dipakai   Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model UkuranProduk {
+  id        Int      @id @default(autoincrement())
+  produkId  Int
+  ukuran    String
+  stok      Int      @default(0)
+  createdAt DateTime @default(now())
+  produk    Produk   @relation(fields: [produkId], references: [id])
 }

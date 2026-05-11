@@ -17,11 +17,30 @@ export async function POST(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { nama, harga, kategori, deskripsi, gambar, stok } =
+  const { nama, harga, kategori, deskripsi, gambar, stok, fotos, ukurans } =
     await request.json();
 
   const produk = await prisma.produk.create({
-    data: { nama, harga, kategori, deskripsi, gambar, stok: stok || 0 },
+    data: {
+      nama,
+      harga,
+      kategori,
+      deskripsi,
+      gambar: gambar || null,
+      stok: stok || 0,
+      fotos:
+        fotos?.length > 0
+          ? {
+              create: fotos.map((url, index) => ({ url, urutan: index })),
+            }
+          : undefined,
+      ukurans:
+        ukurans?.length > 0
+          ? {
+              create: ukurans.map((u) => ({ ukuran: u.ukuran, stok: u.stok })),
+            }
+          : undefined,
+    },
   });
 
   return NextResponse.json(produk, { status: 201 });

@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 export default async function Home() {
   const produk = await prisma.produk.findMany({
     orderBy: { createdAt: "desc" },
+    include: { ukurans: true },
   });
 
   return (
@@ -18,7 +19,6 @@ export default async function Home() {
           Pakaian outdoor & streetwear berkualitas tinggi
         </p>
 
-        {/* Grid responsif — 1 kolom di mobile, 2 di tablet, 3 di desktop */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {produk.map((item) => (
             <KartuProduk
@@ -29,6 +29,7 @@ export default async function Home() {
               kategori={item.kategori}
               gambar={item.gambar}
               stok={item.stok}
+              ukurans={item.ukurans}
             />
           ))}
         </div>

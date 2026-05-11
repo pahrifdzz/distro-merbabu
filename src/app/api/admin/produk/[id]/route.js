@@ -5,30 +5,33 @@ import prisma from "@/lib/prisma";
 
 export async function GET(request, { params }) {
   const { id } = await params;
-
   const produk = await prisma.produk.findUnique({
     where: { id: parseInt(id) },
+    include: { ukurans: true, fotos: { orderBy: { urutan: "asc" } } },
   });
-
   if (!produk) {
     return NextResponse.json(
       { error: "Produk tidak ditemukan" },
       { status: 404 },
     );
   }
-
   return NextResponse.json(produk);
 }
 
 export async function PUT(request, { params }) {
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
-  const { nama, harga, kategori, deskripsi, stok } = await request.json();
+  const { nama, harga, kategori, deskripsi, stok, ukurans } =
+    await request.json();
+
+  // Hapus ukuran lama lalu buat ulang
+  await prisma.ukuranProduk.deleteMany({
+    where: { produkId: parseInt(id) },
+  });
 
   const produk = await prisma.produk.update({
     where: { id: parseInt(id) },
@@ -37,7 +40,13 @@ export async function PUT(request, { params }) {
       harga,
       kategori,
       deskripsi,
-      stok: parseInt(stok) || 0, // ← pastikan baris ini ada
+      stok: stok || 0,
+      ukurans:
+        ukurans?.length > 0
+          ? {
+              create: ukurans.map((u) => ({ ukuran: u.ukuran, stok: u.stok })),
+            }
+          : undefined,
     },
   });
 
@@ -46,31 +55,16 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
-  const produkId = parseInt(id);
 
-  try {
-    // Hapus dulu semua PesananItem yang terkait produk ini
-    await prisma.pesananItem.deleteMany({
-      where: { produkId },
-    });
+  await prisma.pesananItem.deleteMany({ where: { produkId: parseInt(id) } });
+  await prisma.fotoProduk.deleteMany({ where: { produkId: parseInt(id) } });
+  await prisma.ukuranProduk.deleteMany({ where: { produkId: parseInt(id) } });
+  await prisma.produk.delete({ where: { id: parseInt(id) } });
 
-    // Baru hapus produknya
-    await prisma.produk.delete({
-      where: { id: produkId },
-    });
-
-    return NextResponse.json({ message: "Produk berhasil dihapus" });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Gagal menghapus produk" },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json({ message: "Produk berhasil dihapus" });
 }

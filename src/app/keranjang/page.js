@@ -67,7 +67,12 @@ export default function KeranjangPage() {
                   <p className="font-semibold text-gray-800 text-sm truncate">
                     {item.nama}
                   </p>
-                  <p className="text-green-600 text-sm font-medium">
+                  {item.ukuran && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      Ukuran: {item.ukuran}
+                    </span>
+                  )}
+                  <p className="text-green-600 text-sm font-medium mt-1">
                     Rp {item.harga.toLocaleString("id-ID")}
                   </p>
                 </div>

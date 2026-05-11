@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 
+const PILIHAN_UKURAN = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+
 export default function EditProdukPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function EditProdukPage({ params }) {
     deskripsi: "",
     stok: "",
   });
+  const [ukurans, setUkurans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
@@ -27,11 +30,29 @@ export default function EditProdukPage({ params }) {
           harga: data.harga,
           kategori: data.kategori,
           deskripsi: data.deskripsi || "",
-          stok: data.stok ?? 0, // ← pastikan stok ikut diload
+          stok: data.stok ?? 0,
         });
+        setUkurans(data.ukurans || []);
         setFetching(false);
       });
   }, [id]);
+
+  const toggleUkuran = (ukuran) => {
+    const sudahAda = ukurans.find((u) => u.ukuran === ukuran);
+    if (sudahAda) {
+      setUkurans((prev) => prev.filter((u) => u.ukuran !== ukuran));
+    } else {
+      setUkurans((prev) => [...prev, { ukuran, stok: 0 }]);
+    }
+  };
+
+  const updateStokUkuran = (ukuran, stok) => {
+    setUkurans((prev) =>
+      prev.map((u) =>
+        u.ukuran === ukuran ? { ...u, stok: parseInt(stok) || 0 } : u,
+      ),
+    );
+  };
 
   const handleSubmit = async () => {
     if (!form.nama || !form.harga || !form.kategori) {
@@ -41,6 +62,11 @@ export default function EditProdukPage({ params }) {
 
     setLoading(true);
 
+    const totalStok =
+      ukurans.length > 0
+        ? ukurans.reduce((acc, u) => acc + u.stok, 0)
+        : parseInt(form.stok) || 0;
+
     const res = await fetch(`/api/admin/produk/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -49,7 +75,8 @@ export default function EditProdukPage({ params }) {
         harga: parseInt(form.harga),
         kategori: form.kategori,
         deskripsi: form.deskripsi,
-        stok: parseInt(form.stok) || 0, // ← pastikan stok ikut dikirim
+        stok: totalStok,
+        ukurans,
       }),
     });
 
@@ -88,7 +115,7 @@ export default function EditProdukPage({ params }) {
             </label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.nama}
               onChange={(e) => setForm({ ...form, nama: e.target.value })}
             />
@@ -100,23 +127,92 @@ export default function EditProdukPage({ params }) {
             </label>
             <input
               type="number"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.harga}
               onChange={(e) => setForm({ ...form, harga: e.target.value })}
             />
           </div>
 
+          {/* Ukuran & stok */}
           <div>
             <label className="text-sm font-medium text-gray-800 block mb-1">
-              Stok
+              Ukuran & Stok
+              <span className="text-gray-400 font-normal ml-1">(opsional)</span>
             </label>
-            <input
-              type="number"
-              min="0"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
-              value={form.stok}
-              onChange={(e) => setForm({ ...form, stok: e.target.value })}
-            />
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {PILIHAN_UKURAN.map((ukuran) => {
+                const dipilih = ukurans.find((u) => u.ukuran === ukuran);
+                return (
+                  <button
+                    key={ukuran}
+                    type="button"
+                    onClick={() => toggleUkuran(ukuran)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
+                      dipilih
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    {ukuran}
+                  </button>
+                );
+              })}
+            </div>
+
+            {ukurans.length > 0 && (
+              <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-1">
+                  Atur stok tiap ukuran:
+                </p>
+                {ukurans
+                  .sort(
+                    (a, b) =>
+                      PILIHAN_UKURAN.indexOf(a.ukuran) -
+                      PILIHAN_UKURAN.indexOf(b.ukuran),
+                  )
+                  .map((u) => (
+                    <div key={u.ukuran} className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-900 w-12">
+                        {u.ukuran}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                        value={u.stok === 0 ? "" : u.stok}
+                        onChange={(e) =>
+                          updateStokUkuran(
+                            u.ukuran,
+                            e.target.value === "" ? 0 : e.target.value,
+                          )
+                        }
+                      />
+                      <span className="text-xs text-gray-400">pcs</span>
+                    </div>
+                  ))}
+                <p className="text-xs text-gray-400 mt-1">
+                  Total stok:{" "}
+                  <strong className="text-gray-700">
+                    {ukurans.reduce((acc, u) => acc + u.stok, 0)} pcs
+                  </strong>
+                </p>
+              </div>
+            )}
+
+            {ukurans.length === 0 && (
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Stok tanpa ukuran"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                  value={form.stok}
+                  onChange={(e) => setForm({ ...form, stok: e.target.value })}
+                />
+              </div>
+            )}
           </div>
 
           <div>
@@ -143,7 +239,7 @@ export default function EditProdukPage({ params }) {
             </label>
             <textarea
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black resize-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black resize-none"
               value={form.deskripsi}
               onChange={(e) => setForm({ ...form, deskripsi: e.target.value })}
             />

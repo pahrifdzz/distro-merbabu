@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import TombolKeranjang from "@/components/TombolKeranjang";
+import GaleriFoto from "@/components/GaleriFoto";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 
@@ -8,6 +9,10 @@ export default async function DetailProduk({ params }) {
 
   const item = await prisma.produk.findUnique({
     where: { id: parseInt(id) },
+    include: {
+      fotos: { orderBy: { urutan: "asc" } },
+      ukurans: { orderBy: { ukuran: "asc" } },
+    },
   });
 
   if (!item) {
@@ -20,6 +25,14 @@ export default async function DetailProduk({ params }) {
       </main>
     );
   }
+
+  // Gabungkan foto dari tabel FotoProduk dan gambar utama
+  const semuaFoto =
+    item.fotos.length > 0
+      ? item.fotos.map((f) => f.url)
+      : item.gambar
+        ? [item.gambar]
+        : [];
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -34,19 +47,8 @@ export default async function DetailProduk({ params }) {
 
         <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-8">
           <div className="flex flex-col md:flex-row gap-6 md:gap-10">
-            {/* Gambar */}
-            <div className="w-full md:w-64 h-56 md:h-64 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center shrink-0">
-              {item.gambar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.gambar}
-                  alt={item.nama}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-gray-400 text-sm">Foto Produk</span>
-              )}
-            </div>
+            {/* Galeri foto */}
+            <GaleriFoto fotos={semuaFoto} nama={item.nama} />
 
             {/* Info produk */}
             <div className="flex flex-col justify-between gap-4 min-w-0 flex-1">
@@ -61,7 +63,6 @@ export default async function DetailProduk({ params }) {
                   {item.deskripsi}
                 </p>
 
-                {/* Badge stok */}
                 <span
                   className={`text-xs px-3 py-1 rounded-full font-medium ${
                     item.stok === 0

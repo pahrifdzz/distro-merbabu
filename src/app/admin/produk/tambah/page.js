@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import supabase from "@/lib/supabase";
-import Image from "next/image";
-import imageCompression from "browser-image-compression";
+
+const PILIHAN_UKURAN = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 export default function TambahProdukPage() {
   const router = useRouter();
@@ -15,36 +15,40 @@ export default function TambahProdukPage() {
     deskripsi: "",
     stok: "",
   });
-  const [foto, setFoto] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [fotos, setFotos] = useState([]);
+  const [ukurans, setUkurans] = useState([]); // [{ ukuran: 'S', stok: 10 }]
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleFoto = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleTambahFoto = (e) => {
+    const files = Array.from(e.target.files);
+    const fotosBaru = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setFotos((prev) => [...prev, ...fotosBaru]);
+    e.target.value = "";
+  };
 
-    // Validasi tipe file
-    if (!file.type.startsWith("image/")) {
-      setError("File harus berupa gambar!");
-      return;
+  const hapusFoto = (index) => {
+    setFotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleUkuran = (ukuran) => {
+    const sudahAda = ukurans.find((u) => u.ukuran === ukuran);
+    if (sudahAda) {
+      setUkurans((prev) => prev.filter((u) => u.ukuran !== ukuran));
+    } else {
+      setUkurans((prev) => [...prev, { ukuran, stok: 0 }]);
     }
+  };
 
-    // Kompres otomatis sebelum upload
-    const options = {
-      maxSizeMB: 0.5, // maksimal 500KB setelah dikompres
-      maxWidthOrHeight: 800, // maksimal 800px
-      useWebWorker: true,
-    };
-
-    try {
-      const fileTerkompres = await imageCompression(file, options);
-      setFoto(fileTerkompres);
-      setPreview(URL.createObjectURL(fileTerkompres));
-      setError("");
-    } catch (err) {
-      setError("Gagal memproses foto");
-    }
+  const updateStokUkuran = (ukuran, stok) => {
+    setUkurans((prev) =>
+      prev.map((u) =>
+        u.ukuran === ukuran ? { ...u, stok: parseInt(stok) || 0 } : u,
+      ),
+    );
   };
 
   const handleSubmit = async () => {
@@ -54,16 +58,14 @@ export default function TambahProdukPage() {
     }
 
     setLoading(true);
-    let gambarUrl = null;
+    let gambarUtama = null;
+    const urlFotos = [];
 
-    if (foto) {
-      const namaFile = `${Date.now()}-${foto.name}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
+    for (const foto of fotos) {
+      const namaFile = `${Date.now()}-${foto.file.name}`;
+      const { error: uploadError } = await supabase.storage
         .from("produk-images")
-        .upload(namaFile, foto);
-
-      console.log("Upload result:", uploadData, uploadError);
+        .upload(namaFile, foto.file);
 
       if (uploadError) {
         setError("Gagal upload foto: " + uploadError.message);
@@ -74,30 +76,30 @@ export default function TambahProdukPage() {
       const { data } = supabase.storage
         .from("produk-images")
         .getPublicUrl(namaFile);
-
-      gambarUrl = data.publicUrl;
-      console.log("Gambar URL:", gambarUrl);
+      urlFotos.push(data.publicUrl);
+      if (!gambarUtama) gambarUtama = data.publicUrl;
     }
 
-    console.log("Data yang dikirim:", {
-      ...form,
-      harga: parseInt(form.harga),
-      gambar: gambarUrl,
-    });
+    // Hitung total stok dari ukuran kalau ada
+    const totalStok =
+      ukurans.length > 0
+        ? ukurans.reduce((acc, u) => acc + u.stok, 0)
+        : parseInt(form.stok) || 0;
 
     const res = await fetch("/api/admin/produk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
+        nama: form.nama,
         harga: parseInt(form.harga),
-        stok: parseInt(form.stok) || 0,
-        gambar: gambarUrl,
+        kategori: form.kategori,
+        deskripsi: form.deskripsi,
+        stok: totalStok,
+        gambar: gambarUtama,
+        fotos: urlFotos,
+        ukurans,
       }),
     });
-
-    const data = await res.json();
-    console.log("Response API:", data);
 
     if (!res.ok) {
       setError("Gagal menambah produk");
@@ -124,36 +126,68 @@ export default function TambahProdukPage() {
           <div>
             <label className="text-sm font-medium text-gray-800 block mb-1">
               Foto Produk
+              <span className="text-gray-400 font-normal ml-1">
+                (bisa lebih dari 1)
+              </span>
             </label>
-            <div
-              onClick={() => document.getElementById("inputFoto").click()}
-              className="w-full h-40 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 transition overflow-hidden"
-            >
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={preview}
-                  alt="preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
+            {fotos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {fotos.map((foto, index) => (
+                  <div key={index} className="relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={foto.preview}
+                      alt={`foto ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                    />
+                    {index === 0 && (
+                      <span className="absolute top-1 left-1 bg-black text-white text-xs px-1.5 py-0.5 rounded">
+                        Utama
+                      </span>
+                    )}
+                    <button
+                      onClick={() => hapusFoto(index)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <div
+                  onClick={() => document.getElementById("inputFoto").click()}
+                  className="w-full h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 transition"
+                >
+                  <span className="text-2xl text-gray-300">+</span>
+                </div>
+              </div>
+            )}
+            {fotos.length === 0 && (
+              <div
+                onClick={() => document.getElementById("inputFoto").click()}
+                className="w-full h-36 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 transition mb-3"
+              >
                 <div className="text-center">
-                  <p className="text-3xl mb-2">📷</p>
+                  <p className="text-3xl mb-1">📷</p>
                   <p className="text-sm text-gray-400">
                     Klik untuk upload foto
                   </p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    Bisa pilih beberapa foto sekaligus
+                  </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
             <input
               id="inputFoto"
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
-              onChange={handleFoto}
+              onChange={handleTambahFoto}
             />
           </div>
 
+          {/* Nama produk */}
           <div>
             <label className="text-sm font-medium text-gray-800 block mb-1">
               Nama Produk
@@ -167,23 +201,11 @@ export default function TambahProdukPage() {
             />
           </div>
 
+          {/* Harga */}
           <div>
             <label className="text-sm font-medium text-gray-800 block mb-1">
               Harga (Rp)
             </label>
-            <div>
-              <label className="text-sm font-medium text-gray-800 block mb-1">
-                Stok
-              </label>
-              <input
-                type="number"
-                placeholder="Masukkan jumlah stok"
-                min="0"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
-                value={form.stok}
-                onChange={(e) => setForm({ ...form, stok: e.target.value })}
-              />
-            </div>
             <input
               type="number"
               placeholder="Contoh: 120000"
@@ -193,6 +215,92 @@ export default function TambahProdukPage() {
             />
           </div>
 
+          {/* Ukuran & stok per ukuran */}
+          <div>
+            <label className="text-sm font-medium text-gray-800 block mb-1">
+              Ukuran & Stok
+              <span className="text-gray-400 font-normal ml-1">(opsional)</span>
+            </label>
+
+            {/* Pilih ukuran */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {PILIHAN_UKURAN.map((ukuran) => {
+                const dipilih = ukurans.find((u) => u.ukuran === ukuran);
+                return (
+                  <button
+                    key={ukuran}
+                    type="button"
+                    onClick={() => toggleUkuran(ukuran)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
+                      dipilih
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    {ukuran}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Input stok per ukuran */}
+            {ukurans.length > 0 && (
+              <div className="flex flex-col gap-2 bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-1">
+                  Atur stok tiap ukuran:
+                </p>
+                {ukurans
+                  .sort(
+                    (a, b) =>
+                      PILIHAN_UKURAN.indexOf(a.ukuran) -
+                      PILIHAN_UKURAN.indexOf(b.ukuran),
+                  )
+                  .map((u) => (
+                    <div key={u.ukuran} className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-900 w-12">
+                        {u.ukuran}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Stok"
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                        value={u.stok}
+                        onChange={(e) =>
+                          updateStokUkuran(u.ukuran, e.target.value)
+                        }
+                      />
+                      <span className="text-xs text-gray-400">pcs</span>
+                    </div>
+                  ))}
+                <p className="text-xs text-gray-400 mt-1">
+                  Total stok:{" "}
+                  <strong className="text-gray-700">
+                    {ukurans.reduce((acc, u) => acc + u.stok, 0)} pcs
+                  </strong>
+                </p>
+              </div>
+            )}
+
+            {/* Stok manual kalau tidak pakai ukuran */}
+            {ukurans.length === 0 && (
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Masukkan jumlah stok (tanpa ukuran)"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                  value={form.stok}
+                  onChange={(e) => setForm({ ...form, stok: e.target.value })}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Pilih ukuran di atas untuk atur stok per ukuran
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Kategori */}
           <div>
             <label className="text-sm font-medium text-gray-800 block mb-1">
               Kategori
@@ -211,6 +319,7 @@ export default function TambahProdukPage() {
             </select>
           </div>
 
+          {/* Deskripsi */}
           <div>
             <label className="text-sm font-medium text-gray-800 block mb-1">
               Deskripsi
