@@ -13,14 +13,15 @@ export default function CheckoutPage() {
   const { keranjang, totalHarga, kosongkanKeranjang } = useKeranjang();
   const [loading, setLoading] = useState(false);
   const [profil, setProfil] = useState(null);
-  const [daftarOngkir, setDaftarOngkir] = useState([]);
-  const [ongkirDipilih, setOngkirDipilih] = useState(null);
-  const [form, setForm] = useState({
-    nama: "",
-    alamat: "",
-    kota: "",
-    telepon: "",
-  });
+  const [zonaList, setZonaList] = useState([]);
+  const [zonaDipilih, setZonaDipilih] = useState(null);
+  const [form, setForm] = useState({ nama: "", alamat: "", telepon: "" });
+
+  useEffect(() => {
+    fetch("/api/ongkir")
+      .then((res) => res.json())
+      .then((data) => setZonaList(Array.isArray(data) ? data : []));
+  }, []);
 
   useEffect(() => {
     if (session) {
@@ -28,9 +29,6 @@ export default function CheckoutPage() {
         .then((res) => res.json())
         .then((data) => setProfil(data));
     }
-    fetch("/api/ongkir")
-      .then((res) => res.json())
-      .then((data) => setDaftarOngkir(data));
   }, [session]);
 
   useEffect(() => {
@@ -39,16 +37,9 @@ export default function CheckoutPage() {
         nama: profil.nama || "",
         telepon: profil.telepon || "",
         alamat: profil.alamat || "",
-        kota: "",
       });
     }
   }, [profil]);
-
-  const handlePilihKota = (kota) => {
-    setForm({ ...form, kota });
-    const ongkir = daftarOngkir.find((o) => o.kota === kota);
-    setOngkirDipilih(ongkir || null);
-  };
 
   const isiDariProfil = () => {
     if (!profil) return;
@@ -56,11 +47,10 @@ export default function CheckoutPage() {
       nama: profil.nama || "",
       telepon: profil.telepon || "",
       alamat: profil.alamat || "",
-      kota: form.kota,
     });
   };
 
-  const totalBayar = totalHarga + (ongkirDipilih?.biaya || 0);
+  const totalBayar = totalHarga + (zonaDipilih?.biaya || 0);
 
   if (keranjang.length === 0) {
     return (
@@ -106,13 +96,12 @@ export default function CheckoutPage() {
   }
 
   const handleCheckout = async () => {
-    if (!form.nama || !form.alamat || !form.kota || !form.telepon) {
-      alert("Semua field wajib diisi!");
+    if (!form.nama || !form.alamat || !form.telepon) {
+      alert("Semua field informasi pengiriman wajib diisi!");
       return;
     }
-
-    if (!ongkirDipilih) {
-      alert("Pilih kota tujuan terlebih dahulu!");
+    if (!zonaDipilih) {
+      alert("Pilih zona pengiriman terlebih dahulu!");
       return;
     }
 
@@ -124,11 +113,12 @@ export default function CheckoutPage() {
       body: JSON.stringify({
         items: keranjang,
         total: totalBayar,
-        alamat: `${form.alamat}, ${form.kota}`,
+        alamat: form.alamat,
         telepon: form.telepon,
         nama: form.nama,
-        ongkir: ongkirDipilih.biaya,
-        kotaTujuan: form.kota,
+        ongkir: zonaDipilih.biaya,
+        kotaTujuan: zonaDipilih.namaZona,
+        kurir: `Pengiriman ${zonaDipilih.namaZona}`,
       }),
     });
 
@@ -153,13 +143,12 @@ export default function CheckoutPage() {
         </h1>
 
         <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
-          {/* Form pengiriman */}
-          <div className="flex-1">
-            <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6 mb-4">
+          {/* Form kiri */}
+          <div className="flex-1 flex flex-col gap-4">
+            {/* Informasi penerima */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-gray-900">
-                  Informasi Pengiriman
-                </h2>
+                <h2 className="font-bold text-gray-900">Informasi Penerima</h2>
                 {profil?.telepon && profil?.alamat && (
                   <button
                     onClick={isiDariProfil}
@@ -195,7 +184,6 @@ export default function CheckoutPage() {
                     onChange={(e) => setForm({ ...form, nama: e.target.value })}
                   />
                 </div>
-
                 <div>
                   <label className="text-sm font-medium text-gray-800 block mb-1">
                     Nomor Telepon
@@ -210,13 +198,12 @@ export default function CheckoutPage() {
                     }
                   />
                 </div>
-
                 <div>
                   <label className="text-sm font-medium text-gray-800 block mb-1">
                     Alamat Lengkap
                   </label>
                   <textarea
-                    placeholder="Masukkan alamat lengkap"
+                    placeholder="Masukkan alamat lengkap (nama jalan, nomor, RT/RW, kelurahan, kota)"
                     rows={3}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black resize-none"
                     value={form.alamat}
@@ -225,74 +212,59 @@ export default function CheckoutPage() {
                     }
                   />
                 </div>
+              </div>
+            </div>
 
-                {/* Dropdown kota dengan ongkir otomatis */}
-                <div>
-                  <label className="text-sm font-medium text-gray-800 block mb-1">
-                    Kota Tujuan
-                  </label>
-                  <select
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
-                    value={form.kota}
-                    onChange={(e) => handlePilihKota(e.target.value)}
+            {/* Pilih zona pengiriman */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
+              <h2 className="font-bold text-gray-900 mb-2">
+                🚚 Zona Pengiriman
+              </h2>
+              <p className="text-xs text-gray-400 mb-4">
+                Pilih zona sesuai kota tujuan pengiriman kamu
+              </p>
+
+              <div className="flex flex-col gap-3">
+                {zonaList.map((zona) => (
+                  <button
+                    key={zona.id}
+                    type="button"
+                    onClick={() => setZonaDipilih(zona)}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition text-left ${
+                      zonaDipilih?.id === zona.id
+                        ? "border-black bg-gray-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
                   >
-                    <option value="">Pilih kota tujuan</option>
-                    {daftarOngkir.map((o) => (
-                      <option key={o.id} value={o.kota}>
-                        {o.kota} —{" "}
-                        {o.biaya === 0
-                          ? "Gratis"
-                          : `Rp ${o.biaya.toLocaleString("id-ID")}`}{" "}
-                        ({o.estimasi})
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Info ongkir setelah pilih kota */}
-                  {ongkirDipilih && (
-                    <div
-                      className={`mt-2 rounded-lg p-3 flex items-center justify-between ${
-                        ongkirDipilih.biaya === 0
-                          ? "bg-green-50 border border-green-200"
-                          : "bg-blue-50 border border-blue-200"
-                      }`}
-                    >
-                      <div>
-                        <p
-                          className={`text-xs font-medium ${
-                            ongkirDipilih.biaya === 0
-                              ? "text-green-700"
-                              : "text-blue-700"
-                          }`}
-                        >
-                          {ongkirDipilih.biaya === 0
-                            ? "🎉 Gratis ongkir!"
-                            : "🚚 Biaya pengiriman"}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {zona.namaZona}
                         </p>
-                        <p
-                          className={`text-xs mt-0.5 ${
-                            ongkirDipilih.biaya === 0
-                              ? "text-green-600"
-                              : "text-blue-600"
-                          }`}
-                        >
-                          Estimasi tiba: {ongkirDipilih.estimasi}
-                        </p>
+                        {zonaDipilih?.id === zona.id && (
+                          <span className="text-xs text-green-600 font-medium">
+                            ✓ Dipilih
+                          </span>
+                        )}
                       </div>
-                      <p
-                        className={`text-sm font-bold ${
-                          ongkirDipilih.biaya === 0
-                            ? "text-green-700"
-                            : "text-blue-700"
-                        }`}
-                      >
-                        {ongkirDipilih.biaya === 0
-                          ? "Gratis"
-                          : `Rp ${ongkirDipilih.biaya.toLocaleString("id-ID")}`}
+                      <p className="text-xs text-gray-500">{zona.wilayah}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        ⏱️ Estimasi: {zona.estimasi}
                       </p>
                     </div>
-                  )}
-                </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <p
+                        className={`text-sm font-bold ${
+                          zona.biaya === 0 ? "text-green-600" : "text-gray-900"
+                        }`}
+                      >
+                        {zona.biaya === 0
+                          ? "Gratis"
+                          : `Rp ${zona.biaya.toLocaleString("id-ID")}`}
+                      </p>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -329,14 +301,17 @@ export default function CheckoutPage() {
 
           {/* Ringkasan pesanan */}
           <div className="w-full lg:w-72 shrink-0">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-24">
               <h2 className="font-bold text-gray-900 mb-4">
                 Ringkasan Pesanan
               </h2>
 
               <div className="flex flex-col gap-3 mb-4">
                 {keranjang.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3">
+                  <div
+                    key={`${item.id}-${item.ukuran}`}
+                    className="flex items-center gap-3"
+                  >
                     <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                       {item.gambar ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -371,35 +346,36 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              <div className="border-t border-gray-100 pt-4 mb-6">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Subtotal</span>
+              <div className="border-t border-gray-100 pt-4 mb-6 flex flex-col gap-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Subtotal produk</span>
                   <span>Rp {totalHarga.toLocaleString("id-ID")}</span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
+
+                <div className="flex justify-between text-sm text-gray-600">
                   <span>Ongkir</span>
-                  {ongkirDipilih ? (
+                  {zonaDipilih ? (
                     <span
                       className={
-                        ongkirDipilih.biaya === 0 ? "text-green-600" : ""
+                        zonaDipilih.biaya === 0 ? "text-green-600" : ""
                       }
                     >
-                      {ongkirDipilih.biaya === 0
+                      {zonaDipilih.biaya === 0
                         ? "Gratis"
-                        : `Rp ${ongkirDipilih.biaya.toLocaleString("id-ID")}`}
+                        : `Rp ${zonaDipilih.biaya.toLocaleString("id-ID")}`}
                     </span>
                   ) : (
-                    <span className="text-gray-400 text-xs">
-                      Pilih kota dulu
-                    </span>
+                    <span className="text-gray-400 text-xs">Belum dipilih</span>
                   )}
                 </div>
-                {ongkirDipilih && (
-                  <div className="flex justify-between text-xs text-gray-400 mb-2">
-                    <span>Estimasi tiba</span>
-                    <span>{ongkirDipilih.estimasi}</span>
+
+                {zonaDipilih && (
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>{zonaDipilih.namaZona}</span>
+                    <span>Est. {zonaDipilih.estimasi}</span>
                   </div>
                 )}
+
                 <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-gray-900">
                   <span>Total Bayar</span>
                   <span>Rp {totalBayar.toLocaleString("id-ID")}</span>
@@ -408,15 +384,15 @@ export default function CheckoutPage() {
 
               <button
                 onClick={handleCheckout}
-                disabled={loading || !ongkirDipilih}
+                disabled={loading || !zonaDipilih}
                 className="w-full bg-black text-white py-3 rounded-full text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
               >
                 {loading ? "Memproses..." : "Buat Pesanan"}
               </button>
 
-              {!ongkirDipilih && (
+              {!zonaDipilih && (
                 <p className="text-xs text-gray-400 text-center mt-2">
-                  Pilih kota tujuan untuk melanjutkan
+                  Pilih zona pengiriman dulu
                 </p>
               )}
             </div>

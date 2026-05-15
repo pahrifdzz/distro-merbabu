@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { use } from "react";
 
-export default function TambahZonaPage() {
+export default function EditZonaPage({ params }) {
+  const { id } = use(params);
   const router = useRouter();
   const [form, setForm] = useState({
     namaZona: "",
@@ -12,7 +14,22 @@ export default function TambahZonaPage() {
     estimasi: "",
   });
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch(`/api/admin/ongkir/${id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setForm({
+          namaZona: data.namaZona,
+          wilayah: data.wilayah,
+          biaya: data.biaya,
+          estimasi: data.estimasi,
+        });
+        setFetching(false);
+      });
+  }, [id]);
 
   const handleSubmit = async () => {
     if (
@@ -27,14 +44,14 @@ export default function TambahZonaPage() {
 
     setLoading(true);
 
-    const res = await fetch("/api/admin/ongkir", {
-      method: "POST",
+    const res = await fetch(`/api/admin/ongkir/${id}`, {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...form, biaya: parseInt(form.biaya) }),
     });
 
     if (!res.ok) {
-      setError("Gagal menambah zona");
+      setError("Gagal mengupdate zona");
       setLoading(false);
       return;
     }
@@ -42,10 +59,18 @@ export default function TambahZonaPage() {
     router.push("/admin/ongkir");
   };
 
+  if (fetching) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <p className="text-gray-400 text-sm">Memuat data zona...</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        Tambah Zona Ongkir
+        Edit Zona Ongkir
       </h1>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-lg">
@@ -62,8 +87,7 @@ export default function TambahZonaPage() {
             </label>
             <input
               type="text"
-              placeholder="Contoh: Zona 1 — Gratis Ongkir"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.namaZona}
               onChange={(e) => setForm({ ...form, namaZona: e.target.value })}
             />
@@ -75,8 +99,7 @@ export default function TambahZonaPage() {
             </label>
             <textarea
               rows={3}
-              placeholder="Contoh: Jakarta, Bogor, Depok, Bekasi"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black resize-none"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black resize-none"
               value={form.wilayah}
               onChange={(e) => setForm({ ...form, wilayah: e.target.value })}
             />
@@ -89,10 +112,14 @@ export default function TambahZonaPage() {
             <input
               type="number"
               min="0"
-              placeholder="Masukkan 0 untuk gratis ongkir"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
-              value={form.biaya}
-              onChange={(e) => setForm({ ...form, biaya: e.target.value })}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+              value={form.biaya === 0 ? "" : form.biaya}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  biaya: e.target.value === "" ? 0 : e.target.value,
+                })
+              }
             />
           </div>
 
@@ -102,8 +129,7 @@ export default function TambahZonaPage() {
             </label>
             <input
               type="text"
-              placeholder="Contoh: 2-3 hari"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.estimasi}
               onChange={(e) => setForm({ ...form, estimasi: e.target.value })}
             />
@@ -115,7 +141,7 @@ export default function TambahZonaPage() {
               disabled={loading}
               className="bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
             >
-              {loading ? "Menyimpan..." : "Simpan"}
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
             </button>
             <button
               onClick={() => router.back()}
