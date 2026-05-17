@@ -23,16 +23,7 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* Menu desktop */}
-        <div className="hidden md:flex gap-6 text-gray-600 text-sm">
-          <Link href="/" className="hover:text-black">
-            Produk
-          </Link>
-          <Link href="/tentang" className="hover:text-black">
-            Tentang
-          </Link>
-        </div>
-
+        {/* Kanan — desktop */}
         <div className="hidden md:flex items-center gap-3">
           <Link href="/keranjang" className="relative">
             <div className="w-9 h-9 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50">
@@ -78,7 +69,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Tombol hamburger mobile */}
+        {/* Hamburger mobile */}
         <div className="flex md:hidden items-center gap-3">
           <Link href="/keranjang" className="relative">
             <div className="w-9 h-9 border border-gray-200 rounded-full flex items-center justify-center">
@@ -102,20 +93,6 @@ export default function Navbar() {
       {/* Menu mobile dropdown */}
       {menuTerbuka && (
         <div className="md:hidden border-t border-gray-100 mt-4 pt-4 flex flex-col gap-3 px-2">
-          <Link
-            href="/"
-            className="text-sm text-gray-700 py-2 hover:text-black"
-            onClick={() => setMenuTerbuka(false)}
-          >
-            Produk
-          </Link>
-          <Link
-            href="/tentang"
-            className="text-sm text-gray-700 py-2 hover:text-black"
-            onClick={() => setMenuTerbuka(false)}
-          >
-            Tentang
-          </Link>
           {session ? (
             <>
               <Link

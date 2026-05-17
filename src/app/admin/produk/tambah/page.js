@@ -207,11 +207,15 @@ export default function TambahProdukPage() {
               Harga (Rp)
             </label>
             <input
-              type="number"
-              placeholder="Contoh: 120000"
+              type="text"
+              inputMode="numeric"
+              placeholder="Contoh: 140000"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.harga}
-              onChange={(e) => setForm({ ...form, harga: e.target.value })}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, "");
+                setForm({ ...form, harga: val });
+              }}
             />
           </div>
 
