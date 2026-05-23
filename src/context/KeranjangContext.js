@@ -7,44 +7,45 @@ const KeranjangContext = createContext();
 export function KeranjangProvider({ children }) {
   const [keranjang, setKeranjang] = useState([]);
 
-  // Tambah produk ke keranjang
   const tambahKeKeranjang = (produk) => {
     setKeranjang((prev) => {
-      const sudahAda = prev.find((item) => item.id === produk.id);
+      // Cek berdasarkan id DAN ukuran sekaligus
+      const sudahAda = prev.find(
+        (item) => item.id === produk.id && item.ukuran === produk.ukuran,
+      );
       if (sudahAda) {
-        // Kalau sudah ada, tambah jumlahnya
         return prev.map((item) =>
-          item.id === produk.id ? { ...item, jumlah: item.jumlah + 1 } : item,
+          item.id === produk.id && item.ukuran === produk.ukuran
+            ? { ...item, jumlah: item.jumlah + 1 }
+            : item,
         );
       }
-      // Kalau belum ada, tambah sebagai item baru
       return [...prev, { ...produk, jumlah: 1 }];
     });
   };
 
-  // Hapus produk dari keranjang
-  const hapusDariKeranjang = (id) => {
-    setKeranjang((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  // Ubah jumlah produk
-  const ubahJumlah = (id, jumlah) => {
-    if (jumlah < 1) return;
+  const hapusDariKeranjang = (id, ukuran) => {
     setKeranjang((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, jumlah } : item)),
+      prev.filter((item) => !(item.id === id && item.ukuran === ukuran)),
     );
   };
 
-  // Hitung total harga
+  const ubahJumlah = (id, ukuran, jumlah) => {
+    if (jumlah < 1) return;
+    setKeranjang((prev) =>
+      prev.map((item) =>
+        item.id === id && item.ukuran === ukuran ? { ...item, jumlah } : item,
+      ),
+    );
+  };
+
   const totalHarga = keranjang.reduce(
     (total, item) => total + item.harga * item.jumlah,
     0,
   );
 
-  // Hitung total item
   const totalItem = keranjang.reduce((total, item) => total + item.jumlah, 0);
 
-  // Kosongkan keranjang
   const kosongkanKeranjang = () => setKeranjang([]);
 
   return (

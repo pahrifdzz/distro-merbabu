@@ -14,11 +14,29 @@ export async function POST(request) {
       );
     }
 
-    const { items, total, alamat, telepon, nama, ongkir, kotaTujuan } =
-      await request.json();
+    const {
+      items,
+      total,
+      alamat,
+      telepon,
+      nama,
+      ongkir,
+      kotaTujuan,
+      kurir,
+      voucher,
+      diskon,
+    } = await request.json();
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: "Keranjang kosong" }, { status: 400 });
+    }
+
+    // Kurangi kuota voucher kalau ada
+    if (voucher) {
+      await prisma.voucher.updateMany({
+        where: { kode: voucher },
+        data: { terpakai: { increment: 1 } },
+      });
     }
 
     const pesanan = await prisma.pesanan.create({
@@ -30,6 +48,7 @@ export async function POST(request) {
         namaPenerima: nama,
         ongkir: ongkir || 0,
         kotaTujuan: kotaTujuan || null,
+        kurir: kurir || null,
         status: "pending",
         items: {
           create: items.map((item) => ({

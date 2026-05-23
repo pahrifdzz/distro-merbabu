@@ -24,13 +24,13 @@ export default function AdminLayout({ children }) {
         md:translate-x-0
       `}
       >
-        {/* Logo di sidebar */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        {/* Logo lebih besar */}
+        <div className="px-6 py-5 border-b border-gray-200">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/merbabu.png"
             alt="Distro Merbabu"
-            className="h-8 w-auto mb-1"
+            className="h-12 w-auto mb-2"
           />
           <p className="text-xs text-gray-400">Dashboard Admin</p>
         </div>
@@ -71,6 +71,13 @@ export default function AdminLayout({ children }) {
           >
             🚚 Zona Ongkir
           </Link>
+          <Link
+            href="/admin/voucher"
+            onClick={() => setSidebarTerbuka(false)}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          >
+            🎟️ Voucher
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-200">
@@ -92,7 +99,7 @@ export default function AdminLayout({ children }) {
             ☰
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/merbabu.png" alt="Distro Merbabu" className="h-7 w-auto" />
+          <img src="/merbabu.png" alt="Distro Merbabu" className="h-8 w-auto" />
         </div>
 
         <main className="flex-1 p-4 md:p-8 overflow-auto">{children}</main>

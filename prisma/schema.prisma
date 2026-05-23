@@ -97,3 +97,17 @@ model UkuranProduk {
   createdAt DateTime @default(now())
   produk    Produk   @relation(fields: [produkId], references: [id])
 }
+
+model Voucher {
+  id           Int      @id @default(autoincrement())
+  kode         String   @unique
+  diskon       Int
+  tipe         String   @default("persen")
+  minBelanja   Int      @default(0)
+  maxDiskon    Int?
+  kuota        Int      @default(1)
+  terpakai     Int      @default(0)
+  aktif        Boolean  @default(true)
+  expiredAt    DateTime?
+  createdAt    DateTime @default(now())
+}

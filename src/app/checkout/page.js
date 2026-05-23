@@ -16,6 +16,10 @@ export default function CheckoutPage() {
   const [zonaList, setZonaList] = useState([]);
   const [zonaDipilih, setZonaDipilih] = useState(null);
   const [form, setForm] = useState({ nama: "", alamat: "", telepon: "" });
+  const [kodeVoucher, setKodeVoucher] = useState("");
+  const [voucherData, setVoucherData] = useState(null);
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [voucherError, setVoucherError] = useState("");
 
   useEffect(() => {
     fetch("/api/ongkir")
@@ -50,7 +54,8 @@ export default function CheckoutPage() {
     });
   };
 
-  const totalBayar = totalHarga + (zonaDipilih?.biaya || 0);
+  const totalBayar =
+    totalHarga + (zonaDipilih?.biaya || 0) - (voucherData?.nilaiDiskon || 0);
 
   if (keranjang.length === 0) {
     return (
@@ -119,6 +124,8 @@ export default function CheckoutPage() {
         ongkir: zonaDipilih.biaya,
         kotaTujuan: zonaDipilih.namaZona,
         kurir: `Pengiriman ${zonaDipilih.namaZona}`,
+        voucher: voucherData?.kode || null,
+        diskon: voucherData?.nilaiDiskon || 0,
       }),
     });
 
@@ -132,6 +139,38 @@ export default function CheckoutPage() {
 
     kosongkanKeranjang();
     router.push(`/pesanan/${data.pesananId}`);
+  };
+
+  const pakaiVoucher = async () => {
+    if (!kodeVoucher) return;
+    setVoucherLoading(true);
+    setVoucherError("");
+    setVoucherData(null);
+
+    const res = await fetch("/api/voucher", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kode: kodeVoucher,
+        totalBelanja: totalHarga,
+      }),
+    });
+
+    const data = await res.json();
+    setVoucherLoading(false);
+
+    if (!res.ok) {
+      setVoucherError(data.error);
+      return;
+    }
+
+    setVoucherData(data);
+  };
+
+  const hapusVoucher = () => {
+    setVoucherData(null);
+    setKodeVoucher("");
+    setVoucherError("");
   };
 
   return (
@@ -268,6 +307,54 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Input voucher */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
+              <h2 className="font-bold text-gray-900 mb-4">🎟️ Kode Voucher</h2>
+
+              {voucherData ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-green-800 font-mono">
+                      {voucherData.kode}
+                    </p>
+                    <p className="text-xs text-green-600 mt-0.5">
+                      {voucherData.pesan}
+                    </p>
+                  </div>
+                  <button
+                    onClick={hapusVoucher}
+                    className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-3 py-1.5 rounded-lg"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Masukkan kode voucher"
+                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black uppercase"
+                    value={kodeVoucher}
+                    onChange={(e) => {
+                      setKodeVoucher(e.target.value.toUpperCase());
+                      setVoucherError("");
+                    }}
+                  />
+                  <button
+                    onClick={pakaiVoucher}
+                    disabled={!kodeVoucher || voucherLoading}
+                    className="bg-black text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 disabled:opacity-50 transition shrink-0"
+                  >
+                    {voucherLoading ? "..." : "Pakai"}
+                  </button>
+                </div>
+              )}
+
+              {voucherError && (
+                <p className="text-xs text-red-500 mt-2">{voucherError}</p>
+              )}
+            </div>
+
             {/* Metode pembayaran */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
               <h2 className="font-bold text-gray-900 mb-4">
@@ -307,9 +394,9 @@ export default function CheckoutPage() {
               </h2>
 
               <div className="flex flex-col gap-3 mb-4">
-                {keranjang.map((item) => (
+                {keranjang.map((item, index) => (
                   <div
-                    key={`${item.id}-${item.ukuran}`}
+                    key={`${item.id}-${item.ukuran || "no-size"}-${index}`}
                     className="flex items-center gap-3"
                   >
                     <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0">
@@ -373,6 +460,15 @@ export default function CheckoutPage() {
                   <div className="flex justify-between text-xs text-gray-400">
                     <span>{zonaDipilih.namaZona}</span>
                     <span>Est. {zonaDipilih.estimasi}</span>
+                  </div>
+                )}
+
+                {voucherData && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Voucher {voucherData.kode}</span>
+                    <span>
+                      - Rp {voucherData.nilaiDiskon.toLocaleString("id-ID")}
+                    </span>
                   </div>
                 )}
 

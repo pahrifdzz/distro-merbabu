@@ -43,9 +43,9 @@ export default function KeranjangPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Daftar produk */}
           <div className="flex-1 flex flex-col gap-4">
-            {keranjang.map((item) => (
+            {keranjang.map((item, index) => (
               <div
-                key={item.id}
+                key={`${item.id}-${item.ukuran || "no-size"}-${index}`}
                 className="bg-white rounded-xl border border-gray-200 p-4 flex gap-4 items-center"
               >
                 <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
@@ -118,7 +118,9 @@ export default function KeranjangPage() {
               </div>
               <div className="flex justify-between text-sm text-gray-600 mb-4">
                 <span>Ongkir</span>
-                <span className="text-green-600">Gratis</span>
+                <span className="text-gray-400 italic">
+                  Dihitung saat checkout
+                </span>
               </div>
               <div className="border-t border-gray-100 pt-4 flex justify-between font-bold text-gray-900 mb-6">
                 <span>Total</span>

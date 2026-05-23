@@ -151,9 +151,9 @@ export default function KonfirmasiPesanan() {
             <p className="text-sm font-medium text-gray-900 mb-3">
               Item Pesanan:
             </p>
-            {pesanan.items.map((item) => (
+            {pesanan.items.map((item, index) => (
               <div
-                key={item.id}
+                key={`${item.id}-${index}`}
                 className="flex justify-between text-sm text-gray-600 mb-2"
               >
                 <span>
