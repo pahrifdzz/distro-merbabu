@@ -43,21 +43,25 @@ model User {
 }
 
 model Pesanan {
-  id              Int           @id @default(autoincrement())
-  userId          Int
-  total           Int
-  status          String        @default("pending")
-  alamat          String?
-  telepon         String?
-  namaPenerima    String?
-  buktiPembayaran String?
-  ongkir          Int           @default(0)
-  kotaTujuan      String?
-  kurir           String?
-  layanan         String?
-  createdAt       DateTime      @default(now())
-  user            User          @relation(fields: [userId], references: [id])
-  items           PesananItem[]
+  id                Int           @id @default(autoincrement())
+  userId            Int
+  total             Int
+  status            String        @default("pending")
+  alamat            String?
+  telepon           String?
+  namaPenerima      String?
+  buktiPembayaran   String?
+  ongkir            Int           @default(0)
+  kotaTujuan        String?
+  kurir             String?
+  metodePembayaran  String?
+  paymentStatus     String        @default("unpaid")
+  paymentOrderId    String?
+  paymentNumber     String?
+  paymentExpiredAt  DateTime?
+  createdAt         DateTime      @default(now())
+  user              User          @relation(fields: [userId], references: [id])
+  items             PesananItem[]
 }
 
 model PesananItem {

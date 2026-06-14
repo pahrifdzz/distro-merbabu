@@ -8,15 +8,47 @@ export default function PesananSayaPage() {
   const [pesanan, setPesanan] = useState([]);
   const [loading, setLoading] = useState(true);
   const [terbuka, setTerbuka] = useState(null);
+  const [filter, setFilter] = useState("aktif");
+  const [loadingHapus, setLoadingHapus] = useState(null);
 
-  useEffect(() => {
+  const fetchPesanan = () => {
+    setLoading(true);
     fetch("/api/pesanan/user")
       .then((res) => res.json())
       .then((data) => {
         setPesanan(Array.isArray(data) ? data : []);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchPesanan();
   }, []);
+
+  const pesananFiltered = pesanan.filter((p) => {
+    if (filter === "aktif") return p.status !== "selesai";
+    if (filter === "selesai") return p.status === "selesai";
+    return true;
+  });
+
+  const handleHapus = async (id) => {
+    if (!confirm("Hapus pesanan ini dari riwayat kamu?")) return;
+    setLoadingHapus(id);
+
+    const res = await fetch(`/api/pesanan/${id}/hapus`, {
+      method: "DELETE",
+    });
+
+    const data = await res.json();
+    setLoadingHapus(null);
+
+    if (!res.ok) {
+      alert(data.error || "Gagal menghapus pesanan");
+      return;
+    }
+
+    fetchPesanan();
+  };
 
   const warnaBadge = (status) => {
     if (status === "pending") return "bg-yellow-100 text-yellow-700";
@@ -26,12 +58,15 @@ export default function PesananSayaPage() {
   };
 
   const pesanWhatsApp = (p) => {
-    const pesan = `Halo Admin Distro Merbabu! 👋\n\nSaya ingin konfirmasi pembayaran:\n\n🧾 ID Pesanan: #${p.id}\n👤 Nama: ${p.namaPenerima}\n💰 Total: Rp ${p.total.toLocaleString("id-ID")}\n\nSaya sudah melakukan transfer ke rekening BCA 1123344500. Mohon segera dikonfirmasi. Terima kasih!`;
+    const pesan = `Halo Admin Distro Merbabu! 👋\n\nSaya ingin konfirmasi pembayaran:\n\n🧾 ID Pesanan: #${p.id}\n👤 Nama: ${p.namaPenerima}\n💰 Total: Rp ${p.total.toLocaleString("id-ID")}\n\nMohon segera dikonfirmasi. Terima kasih!`;
     window.open(
-      `https://wa.me/6285155162264?text=${encodeURIComponent(pesan)}`,
+      `https://wa.me/6208123456789?text=${encodeURIComponent(pesan)}`,
       "_blank",
     );
   };
+
+  const totalAktif = pesanan.filter((p) => p.status !== "selesai").length;
+  const totalSelesai = pesanan.filter((p) => p.status === "selesai").length;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -49,6 +84,40 @@ export default function PesananSayaPage() {
           <h1 className="text-xl font-bold text-gray-900">Pesanan Saya</h1>
         </div>
 
+        {/* Filter tab */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setFilter("aktif")}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+              filter === "aktif"
+                ? "bg-black text-white border-black"
+                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}
+          >
+            Aktif {totalAktif > 0 && `(${totalAktif})`}
+          </button>
+          <button
+            onClick={() => setFilter("selesai")}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+              filter === "selesai"
+                ? "bg-black text-white border-black"
+                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}
+          >
+            Selesai {totalSelesai > 0 && `(${totalSelesai})`}
+          </button>
+          <button
+            onClick={() => setFilter("semua")}
+            className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+              filter === "semua"
+                ? "bg-black text-white border-black"
+                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}
+          >
+            Semua
+          </button>
+        </div>
+
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-20">
@@ -57,12 +126,20 @@ export default function PesananSayaPage() {
         )}
 
         {/* Kosong */}
-        {!loading && pesanan.length === 0 && (
+        {!loading && pesananFiltered.length === 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <p className="text-4xl mb-4">📦</p>
-            <h2 className="font-bold text-gray-900 mb-2">Belum ada pesanan</h2>
+            <h2 className="font-bold text-gray-900 mb-2">
+              {filter === "aktif"
+                ? "Tidak ada pesanan aktif"
+                : filter === "selesai"
+                  ? "Belum ada pesanan selesai"
+                  : "Belum ada pesanan"}
+            </h2>
             <p className="text-gray-500 text-sm mb-6">
-              Yuk mulai belanja produk Distro Merbabu!
+              {filter === "aktif"
+                ? "Semua pesanan kamu sudah selesai"
+                : "Yuk mulai belanja produk Distro Merbabu!"}
             </p>
             <Link
               href="/"
@@ -74,9 +151,9 @@ export default function PesananSayaPage() {
         )}
 
         {/* Daftar pesanan */}
-        {!loading && pesanan.length > 0 && (
+        {!loading && pesananFiltered.length > 0 && (
           <div className="flex flex-col gap-4">
-            {pesanan.map((p) => (
+            {pesananFiltered.map((p) => (
               <div
                 key={p.id}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden"
@@ -86,27 +163,25 @@ export default function PesananSayaPage() {
                   className="p-4 md:p-5 flex items-center justify-between cursor-pointer hover:bg-gray-50"
                   onClick={() => setTerbuka(terbuka === p.id ? null : p.id)}
                 >
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-gray-900 text-sm">
-                          Pesanan #{p.id}
-                        </p>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${warnaBadge(p.status)}`}
-                        >
-                          {p.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        {new Date(p.createdAt).toLocaleDateString("id-ID", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}{" "}
-                        · {p.items.length} item
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-gray-900 text-sm">
+                        Pesanan #{p.id}
                       </p>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${warnaBadge(p.status)}`}
+                      >
+                        {p.status}
+                      </span>
                     </div>
+                    <p className="text-xs text-gray-400">
+                      {new Date(p.createdAt).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}{" "}
+                      · {p.items.length} item
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="font-bold text-gray-900 text-sm">
@@ -118,7 +193,7 @@ export default function PesananSayaPage() {
                   </div>
                 </div>
 
-                {/* Detail pesanan — expandable */}
+                {/* Detail pesanan */}
                 {terbuka === p.id && (
                   <div className="border-t border-gray-100 p-4 md:p-5">
                     {/* Info pengiriman */}
@@ -129,6 +204,11 @@ export default function PesananSayaPage() {
                       <p className="text-sm text-gray-700">{p.namaPenerima}</p>
                       <p className="text-sm text-gray-500">{p.alamat}</p>
                       <p className="text-sm text-gray-500">{p.telepon}</p>
+                      {p.kotaTujuan && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          📦 {p.kotaTujuan}
+                        </p>
+                      )}
                     </div>
 
                     {/* Item pesanan */}
@@ -136,8 +216,8 @@ export default function PesananSayaPage() {
                       Item Pesanan
                     </p>
                     <div className="flex flex-col gap-3 mb-4">
-                      {p.items.map((item) => (
-                        <div key={item.id} className="flex items-center gap-3">
+                      {p.items.map((item, index) => (
+                        <div key={index} className="flex items-center gap-3">
                           <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                             {item.produk?.gambar ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -170,9 +250,26 @@ export default function PesananSayaPage() {
                     </div>
 
                     {/* Total */}
-                    <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-gray-900 mb-4">
-                      <span>Total</span>
-                      <span>Rp {p.total.toLocaleString("id-ID")}</span>
+                    <div className="border-t border-gray-100 pt-3 mb-4">
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Subtotal produk</span>
+                        <span>
+                          Rp{" "}
+                          {(p.total - (p.ongkir || 0)).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>Ongkir</span>
+                        <span>
+                          {(p.ongkir || 0) === 0
+                            ? "Gratis"
+                            : `Rp ${p.ongkir.toLocaleString("id-ID")}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between font-bold text-gray-900">
+                        <span>Total</span>
+                        <span>Rp {p.total.toLocaleString("id-ID")}</span>
+                      </div>
                     </div>
 
                     {/* Status info */}
@@ -194,15 +291,30 @@ export default function PesananSayaPage() {
                     </div>
 
                     {/* Tombol aksi */}
-                    {p.status === "pending" && (
-                      <button
-                        onClick={() => pesanWhatsApp(p)}
-                        className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
-                        style={{ background: "#25D366", color: "#fff" }}
-                      >
-                        💬 Hubungi Admin via WhatsApp
-                      </button>
-                    )}
+                    <div className="flex flex-col gap-2">
+                      {p.status === "pending" && (
+                        <button
+                          onClick={() => pesanWhatsApp(p)}
+                          className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                          style={{ background: "#25D366", color: "#fff" }}
+                        >
+                          💬 Hubungi Admin via WhatsApp
+                        </button>
+                      )}
+
+                      {/* Tombol hapus — hanya untuk pesanan selesai */}
+                      {p.status === "selesai" && (
+                        <button
+                          onClick={() => handleHapus(p.id)}
+                          disabled={loadingHapus === p.id}
+                          className="w-full py-2.5 rounded-xl text-sm font-medium border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 transition"
+                        >
+                          {loadingHapus === p.id
+                            ? "Menghapus..."
+                            : "🗑️ Hapus dari Riwayat"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

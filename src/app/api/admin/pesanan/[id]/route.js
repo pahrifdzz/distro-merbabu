@@ -5,7 +5,6 @@ import prisma from "@/lib/prisma";
 
 export async function PUT(request, { params }) {
   const session = await getServerSession(authOptions);
-
   if (!session || session.user.role !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -24,4 +23,32 @@ export async function PUT(request, { params }) {
   });
 
   return NextResponse.json(pesanan);
+}
+
+export async function DELETE(request, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  try {
+    // Hapus items dulu sebelum hapus pesanan
+    await prisma.pesananItem.deleteMany({
+      where: { pesananId: parseInt(id) },
+    });
+
+    await prisma.pesanan.delete({
+      where: { id: parseInt(id) },
+    });
+
+    return NextResponse.json({ message: "Pesanan berhasil dihapus" });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Gagal menghapus pesanan" },
+      { status: 500 },
+    );
+  }
 }

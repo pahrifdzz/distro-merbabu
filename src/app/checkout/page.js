@@ -357,31 +357,20 @@ export default function CheckoutPage() {
 
             {/* Metode pembayaran */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
-              <h2 className="font-bold text-gray-900 mb-4">
-                Metode Pembayaran
+              <h2 className="font-bold text-gray-900 mb-3">
+                💳 Metode Pembayaran
               </h2>
-              <div className="border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-4 h-4 rounded-full border-2 border-black flex items-center justify-center shrink-0">
-                    <div className="w-2 h-2 rounded-full bg-black"></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">
-                    Transfer Bank BCA
-                  </span>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 mb-1">Nomor Rekening</p>
-                  <p className="text-base font-bold text-gray-900 tracking-wider">
-                    1123 3445 00
+              <div className="bg-gray-50 rounded-xl p-4 flex items-center gap-3">
+                <span className="text-2xl">🔐</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Pilih di halaman berikutnya
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    a/n Distro Merbabu
+                    QRIS, Virtual Account BRI, BNI, Mandiri, BCA tersedia via
+                    Pakasir
                   </p>
                 </div>
-                <p className="text-xs text-gray-400 mt-3 leading-relaxed">
-                  Setelah checkout, kamu akan mendapat instruksi pembayaran
-                  lengkap beserta tombol untuk menghubungi admin via WhatsApp.
-                </p>
               </div>
             </div>
           </div>
