@@ -2,11 +2,26 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
 
+function validasiPassword(password) {
+  if (password.length > 9) {
+    return "Password maksimal 9 karakter";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Password harus mengandung minimal 1 huruf kapital";
+  }
+  if (!/[0-9]/.test(password)) {
+    return "Password harus mengandung minimal 1 angka";
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return "Password harus mengandung minimal 1 simbol unik";
+  }
+  return null;
+}
+
 export async function POST(request) {
   try {
     const { nama, email, password } = await request.json();
 
-    // Validasi input
     if (!nama || !email || !password) {
       return NextResponse.json(
         { error: "Semua field wajib diisi" },
@@ -14,10 +29,12 @@ export async function POST(request) {
       );
     }
 
-    // Cek apakah email sudah terdaftar
-    const userAda = await prisma.user.findUnique({
-      where: { email },
-    });
+    const errorPassword = validasiPassword(password);
+    if (errorPassword) {
+      return NextResponse.json({ error: errorPassword }, { status: 400 });
+    }
+
+    const userAda = await prisma.user.findUnique({ where: { email } });
 
     if (userAda) {
       return NextResponse.json(
@@ -26,10 +43,8 @@ export async function POST(request) {
       );
     }
 
-    // Enkripsi password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Simpan user baru ke database
     const user = await prisma.user.create({
       data: { nama, email, password: hashedPassword },
     });

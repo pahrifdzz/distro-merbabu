@@ -10,10 +10,33 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const validasiPassword = (password) => {
+    if (password.length > 9) {
+      return "Password maksimal 9 karakter";
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "Password harus mengandung minimal 1 huruf kapital";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password harus mengandung minimal 1 angka";
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return "Password harus mengandung minimal 1 simbol unik";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    const errorPassword = validasiPassword(form.password);
+    if (errorPassword) {
+      setError(errorPassword);
+      setLoading(false);
+      return;
+    }
 
     const res = await fetch("/api/register", {
       method: "POST",
@@ -92,10 +115,15 @@ export default function RegisterPage() {
             <input
               type="password"
               placeholder="Masukkan password"
+              maxLength={9}
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-black"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Maks. 9 karakter, wajib ada huruf kapital, angka, dan simbol
+              (contoh: Merba1!)
+            </p>
           </div>
 
           <button
