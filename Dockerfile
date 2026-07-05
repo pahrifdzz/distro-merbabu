@@ -1,57 +1,69 @@
 FROM node:20-alpine AS base
 
-# 1. Peringkat Pemasangan Dependencies (deps)
+# ==========================================
+# 1. Install Dependencies
+# ==========================================
 FROM base AS deps
-# Tambahkan libc6-compat dan openssl (wajib untuk Prisma pada Alpine)
+# Tambahkan libc6-compat dan openssl (dibutuhkan oleh Prisma Engine di Alpine)
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Salin fail konfigurasi pakej
+# Salin file package dan schema Prisma
 COPY package.json package-lock.json ./
-# Salin skema Prisma
 COPY prisma ./prisma/
 
-# Pasang dependencies dengan clean install
+# Install dependencies secara clean
 RUN npm ci
 
-# 2. Peringkat Pembinaan Aplikasi (builder)
+# ==========================================
+# 2. Build Aplikasi
+# ==========================================
 FROM base AS builder
 WORKDIR /app
+
+# Salin node_modules dari tahap deps dan seluruh file proyek Anda
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Jana Prisma Client
+# Berikan dummy DATABASE_URL agar proses parsing schema.prisma tidak gagal
+# Nilai ini HANYA digunakan saat proses build image dan tidak akan dipakai di tahap production
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy_db"
+
+# Generate Prisma Client
 RUN npx prisma generate
 
-# Bina aplikasi Next.js
+# Build aplikasi Next.js
 RUN npm run build
 
-# 3. Peringkat Pelaksanaan (runner) - Image akhir untuk Production
+# ==========================================
+# 3. Production Image (Runner)
+# ==========================================
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-# Tambahkan openssl untuk Prisma semasa runtime
+# Perbaikan format ENV (mengatasi warning LegacyKeyValueFormat)
+ENV NODE_ENV="production"
+ENV PORT="3000"
+ENV HOSTNAME="0.0.0.0"
+
+# Tambahkan openssl untuk Prisma di runtime production
 RUN apk add --no-cache openssl
 
-# Tetapkan pengguna non-root demi keselamatan
+# Set up user non-root untuk keamanan server
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Salin fail-fail penting sahaja dari peringkat builder
+# Salin hasil build dan dependensi dari tahap builder
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
-# Gunakan pengguna non-root yang telah dibuat
+# Pindah ke user non-root
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-# Jalankan aplikasi
+# Jalankan aplikasi Next.js
 CMD ["npm", "start"]
