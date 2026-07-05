@@ -27,7 +27,7 @@ ENV DATABASE_URL="postgresql://dummy:dummy@localhost:6543/dummy_db"
 ENV DIRECT_URL="postgresql://dummy:dummy@localhost:5432/dummy_db"
 
 # Generate Prisma Client
-RUN npx prisma generate
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Build aplikasi Next.js
 RUN npm run build
