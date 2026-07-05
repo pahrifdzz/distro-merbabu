@@ -1,16 +1,18 @@
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 
 # ==========================================
 # 1. Install Dependencies
 # ==========================================
 FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl
+# Install openssl menggunakan apt-get (wajib untuk Prisma di Debian/Ubuntu)
+RUN apt-get update -y && apt-get install -y openssl
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+# PAKSA install devDependencies (--include=dev) agar Prisma CLI PASTI terinstal
+RUN npm ci --include=dev
 
 # ==========================================
 # 2. Build Aplikasi
@@ -21,13 +23,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Tambahkan KEDUA dummy variabel agar Prisma bisa membaca skema tanpa error
-# Nilai ini hanya untuk mem-bypass validasi saat build, bukan untuk produksi
+# Dummy environment variables agar Prisma bisa memvalidasi skema
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:6543/dummy_db"
 ENV DIRECT_URL="postgresql://dummy:dummy@localhost:5432/dummy_db"
 
-# Generate Prisma Client
-RUN npx prisma generate --schema=./prisma/schema.prisma
+# Tambahkan --yes untuk mencegah prompt otomatis (yang bikin Docker crash)
+RUN npx --yes prisma generate
 
 # Build aplikasi Next.js
 RUN npm run build
@@ -42,8 +43,10 @@ ENV NODE_ENV="production"
 ENV PORT="3000"
 ENV HOSTNAME="0.0.0.0"
 
-RUN apk add --no-cache openssl
+# Install openssl untuk runtime production
+RUN apt-get update -y && apt-get install -y openssl
 
+# Set up user non-root untuk keamanan server
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
