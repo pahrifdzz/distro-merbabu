@@ -1,58 +1,58 @@
-FROM node:20-slim AS base
-
 # ==========================================
-# 1. Builder Stage (Install & Build Disatukan)
+# 1. Builder Stage (Menggunakan OS Node Lengkap)
 # ==========================================
-FROM base AS builder
-# Install dependencies level OS untuk Prisma
-RUN apt-get update -y && apt-get install -y openssl
+FROM node:20 AS builder
 WORKDIR /app
 
-# Salin file definisi paket dan skema
+# Salin definisi paket terlebih dahulu
 COPY package.json package-lock.json ./
-COPY prisma ./prisma/
 
-# Install semua dependensi. 
-# Dilakukan SEBELUM COPY . . untuk memanfaatkan cache Docker
+# Install dependensi (Full OS dijamin tidak akan kekurangan library C/C++)
 RUN npm ci
 
-# Salin seluruh kode (karena ada .dockerignore, node_modules lokal tidak akan ikut)
+# Salin sisa kode aplikasi Anda
 COPY . .
 
-# Variabel dummy agar Prisma tidak mencari database asli saat proses build
+# Dummy environment variables untuk mem-bypass validasi skema Prisma
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:6543/dummy_db"
 ENV DIRECT_URL="postgresql://dummy:dummy@localhost:5432/dummy_db"
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Generate Prisma Client (Berada di stage yang sama dengan npm ci, dijamin aman)
+# Generate Prisma Client (Pasti berhasil karena berjalan di Full OS)
 RUN npx prisma generate
 
-# Build Next.js
+# Build aplikasi Next.js
 RUN npm run build
 
 # ==========================================
-# 2. Production Stage (Runner)
+# 2. Production Stage (Runner menggunakan versi Slim)
 # ==========================================
-FROM base AS runner
-RUN apt-get update -y && apt-get install -y openssl
+FROM node:20-slim AS runner
 WORKDIR /app
 
+# Tambahkan openssl untuk runtime Prisma
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Konfigurasi Environment untuk Production
 ENV NODE_ENV="production"
 ENV PORT="3000"
 ENV HOSTNAME="0.0.0.0"
 
-# Setup keamanan
+# Pengaturan keamanan pengguna
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Hanya salin folder yang dibutuhkan untuk menjalankan aplikasi
+# Pindahkan file hasil kompilasi dari stage builder yang berat, ke stage runner yang ringan
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
+# Jalankan sebagai pengguna non-root
 USER nextjs
+
 EXPOSE 3000
 
+# Perintah mengeksekusi aplikasi
 CMD ["npm", "start"]
