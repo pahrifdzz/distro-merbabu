@@ -1,58 +1,65 @@
-# ==========================================
-# 1. Builder Stage (Menggunakan OS Node Lengkap)
-# ==========================================
-FROM node:20 AS builder
+# ================================
+# Stage 1: Dependencies
+# ================================
+FROM node:22-alpine AS deps
 WORKDIR /app
 
-# Salin definisi paket terlebih dahulu
-COPY package.json package-lock.json ./
+# Install dependencies untuk Prisma
+RUN apk add --no-cache libc6-compat openssl
 
-# Install dependensi (Full OS dijamin tidak akan kekurangan library C/C++)
+COPY package.json package-lock.json ./
+COPY prisma ./prisma/
+
 RUN npm ci
 
-# Salin sisa kode aplikasi Anda
-COPY . .
-
-# Dummy environment variables untuk mem-bypass validasi skema Prisma
-ENV DATABASE_URL="postgresql://dummy:dummy@localhost:6543/dummy_db"
-ENV DIRECT_URL="postgresql://dummy:dummy@localhost:5432/dummy_db"
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Generate Prisma Client (Pasti berhasil karena berjalan di Full OS)
-RUN npx prisma generate
-
-# Build aplikasi Next.js
-RUN npm run build
-
-# ==========================================
-# 2. Production Stage (Runner menggunakan versi Slim)
-# ==========================================
-FROM node:20-slim AS runner
+# ================================
+# Stage 2: Builder
+# ================================
+FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Tambahkan openssl untuk runtime Prisma
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl
 
-# Konfigurasi Environment untuk Production
-ENV NODE_ENV="production"
-ENV PORT="3000"
-ENV HOSTNAME="0.0.0.0"
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
-# Pengaturan keamanan pengguna
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build Next.js
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# ================================
+# Stage 3: Runner
+# ================================
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+RUN apk add --no-cache openssl
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Buat user non-root untuk keamanan
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Pindahkan file hasil kompilasi dari stage builder yang berat, ke stage runner yang ringan
+# Copy file yang diperlukan dari builder
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
 
-# Jalankan sebagai pengguna non-root
+# Copy Next.js build output
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+
 USER nextjs
 
 EXPOSE 3000
 
-# Perintah mengeksekusi aplikasi
-CMD ["npm", "start"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["npm", "run", "start"]
