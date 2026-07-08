@@ -1,65 +1,56 @@
-# ================================
-# Stage 1: Dependencies
-# ================================
-FROM node:22-alpine AS deps
+# ==========================================
+# 1. Builder Stage
+# ==========================================
+FROM node:20 AS builder
 WORKDIR /app
 
-# Install dependencies untuk Prisma
-RUN apk add --no-cache libc6-compat openssl
-
+# Salin package.json terlebih dahulu
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+# Install semua dependensi (wajib sertakan devDependencies)
+RUN npm ci --include=dev
 
-# ================================
-# Stage 2: Builder
-# ================================
-FROM node:22-alpine AS builder
-WORKDIR /app
+# MANTRA RAHASIA: Install Prisma CLI secara global untuk menghindari bug npx di Docker
+RUN npm install -g prisma
 
-RUN apk add --no-cache openssl
-
-COPY --from=deps /app/node_modules ./node_modules
+# Salin sisa kode aplikasi
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Build Next.js
+# Variabel dummy wajib
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:6543/dummy_db"
+ENV DIRECT_URL="postgresql://dummy:dummy@localhost:5432/dummy_db"
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# JALANKAN PRISMA DENGAN MODE DEBUG
+# Jika gagal, ia akan mencetak ribuan baris log merah agar kita tahu pasti apa penyakitnya
+RUN DEBUG="prisma:*" prisma generate
+
+# Build aplikasi Next.js
 RUN npm run build
 
-# ================================
-# Stage 3: Runner
-# ================================
-FROM node:22-alpine AS runner
+# ==========================================
+# 2. Production Stage (Runner)
+# ==========================================
+FROM node:20-slim AS runner
 WORKDIR /app
 
-RUN apk add --no-cache openssl
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV="production"
+ENV PORT="3000"
+ENV HOSTNAME="0.0.0.0"
 
-# Buat user non-root untuk keamanan
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy file yang diperlukan dari builder
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
-
-# Copy Next.js build output
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma ./prisma
 
 USER nextjs
-
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["npm", "run", "start"]
+CMD ["npm", "start"]
