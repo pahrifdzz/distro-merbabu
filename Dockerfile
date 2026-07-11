@@ -1,56 +1,62 @@
+# syntax=docker/dockerfile:1.7
 # ==========================================
-# 1. Builder Stage
+# 1. Deps & Builder Stage
 # ==========================================
-FROM node:20 AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 
-# Salin package.json terlebih dahulu
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# Manifest + prisma schema dulu supaya layer cache maksimal
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-# Install semua dependensi (wajib sertakan devDependencies)
+# Install semua deps (termasuk dev — dibutuhkan untuk build & prisma generate)
 RUN npm ci --include=dev
 
-# MANTRA RAHASIA: Install Prisma CLI secara global untuk menghindari bug npx di Docker
-RUN npm install -g prisma
-
-# Salin sisa kode aplikasi
-COPY . .
-
-# Variabel dummy wajib
+# Dummy URLs supaya prisma generate tidak butuh koneksi DB saat build
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:6543/dummy_db"
 ENV DIRECT_URL="postgresql://dummy:dummy@localhost:5432/dummy_db"
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# JALANKAN PRISMA DENGAN MODE DEBUG
-# Jika gagal, ia akan mencetak ribuan baris log merah agar kita tahu pasti apa penyakitnya
-RUN DEBUG="prisma:*" prisma generate
+RUN npx prisma generate
 
-# Build aplikasi Next.js
+# Salin sisa source & build
+COPY . .
 RUN npm run build
 
 # ==========================================
-# 2. Production Stage (Runner)
+# 2. Runner Stage
 # ==========================================
-FROM node:20-slim AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV="production"
 ENV PORT="3000"
 ENV HOSTNAME="0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs \
+  && useradd  --system --uid 1001 --gid nodejs nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
+# Output standalone dari Next.js (server.js + node_modules minimum)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Prisma CLI + engines + schema/migrations untuk `migrate deploy` saat start
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
 USER nextjs
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# Jalankan migrasi dulu, baru start server. Kalau migrasi gagal, container exit non-zero.
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && node server.js"]

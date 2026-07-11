@@ -1,9 +1,36 @@
+# Deps & build artifacts
 node_modules
 .next
+out
+build
+coverage
+*.tsbuildinfo
+
+# VCS & tooling
 .git
+.gitignore
+.gitattributes
+.github
+.vscode
+.idea
+.claude
+.worktrees
+
+# Env files (di-inject oleh Dokploy via env vars)
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+
+# Logs & OS junk
 *.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Docs & meta (tidak perlu ada di runtime)
 README.md
+AGENTS.md
+CLAUDE.md
+DEPLOYMENT.md
 .dockerignore
+Dockerfile
