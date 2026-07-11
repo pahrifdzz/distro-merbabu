@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const totalProduk = await prisma.produk.count();
   const totalPesanan = await prisma.pesanan.count();

@@ -83,6 +83,8 @@ Copy outputnya → itu nilai `NEXTAUTH_SECRET`.
 
 ## 6️⃣ Isi Environment Variables di Dokploy
 
+### 6a. Runtime Environment (tab **Environment**)
+
 Buka tab **Environment** aplikasi, tambahkan **semua** variabel berikut:
 
 ```env
@@ -103,6 +105,25 @@ EMAIL_PASS=<gmail-app-password>
 ```
 
 > 💡 Semua nilai **tidak boleh** dalam tanda kutip di panel Dokploy.
+
+### 6b. Build-time Variables (WAJIB) — tab **Environment** → **Build-time**
+
+⚠️ **PENTING:** `NEXT_PUBLIC_*` di-**inline** ke dalam bundle JavaScript saat `next build`
+(bukan dibaca saat runtime). Jadi keduanya **HARUS** juga di-set sebagai **build-time
+variable** di Dokploy, kalau tidak fitur upload foto/bukti (Supabase Storage) akan rusak
+karena nilainya ter-bake `undefined`.
+
+Tambahkan sebagai **Build Args** (di Dokploy: tab **Environment**, aktifkan opsi
+"Add to build" / atau bagian **Build-time Variables**):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+```
+
+Dockerfile sudah menyiapkan `ARG NEXT_PUBLIC_SUPABASE_URL` dan
+`ARG NEXT_PUBLIC_SUPABASE_ANON_KEY` untuk menerima nilai ini saat build.
+(Aman di-expose — anon key & URL memang bersifat publik.)
 
 ---
 
@@ -128,14 +149,16 @@ Tab **General** → klik **Deploy**.
 Dokploy akan:
 1. Pull kode dari Git
 2. Build image dari `Dockerfile` (multi-stage, output standalone Next.js)
-3. Saat container start, `prisma migrate deploy` jalan otomatis → sync skema DB
-4. Server Next.js start di port 3000
-5. Traefik route domain → container
+3. Server Next.js start di port 3000 (`node server.js`)
+4. Traefik route domain → container
+
+> ℹ️ Migrasi database **tidak** dijalankan otomatis saat start (runner sengaja dibuat
+> ramping). Lihat [§ Migrasi Database](#-migrasi-database). Untuk deploy pertama ini
+> database kamu sudah ter-migrate di Supabase, jadi aman langsung jalan.
 
 **Cek logs** di tab **Deployments** untuk memantau. Yang perlu muncul:
 ```
-✔ Applied migrations (atau "No pending migrations to apply")
-▲ Next.js ... 
+▲ Next.js 16.2.2
 - Ready in Xs
 ```
 
@@ -160,23 +183,66 @@ Setiap kali kamu push ke branch yang di-track:
 - **Kalau enable auto-deploy** (via GitHub webhook di Dokploy): auto rebuild + redeploy
 - **Kalau manual**: klik tombol **Deploy** ulang di Dokploy
 
-Setiap redeploy otomatis jalankan `prisma migrate deploy` — kalau ada migrasi baru, akan di-apply.
+> ⚠️ Redeploy **tidak** menjalankan migrasi otomatis. Kalau ada migrasi baru, jalankan
+> migrasi dulu (lihat § Migrasi Database) **sebelum** deploy versi yang memakai skema baru.
+
+---
+
+## 🗃️ Migrasi Database
+
+Runner sengaja dibuat ramping (Next.js standalone) dan **tidak** membawa CLI Prisma,
+jadi migrasi dijalankan **terpisah** dari container aplikasi — ini lebih andal dan
+memisahkan perubahan skema dari boot aplikasi.
+
+**Prinsip:** jalankan `prisma migrate deploy` memakai **`DIRECT_URL`** (port 5432,
+NON-pooler). Transaction pooler (6543/pgbouncer) tidak cocok untuk migrasi.
+
+### Cara paling gampang — dari mesin lokal
+
+Pastikan `.env` lokal berisi `DIRECT_URL` production (Supabase direct 5432), lalu:
+
+```bash
+# cek dulu status migrasi vs database production
+npx prisma migrate status
+
+# terapkan migrasi yang belum di-apply
+npx prisma migrate deploy
+```
+
+Karena `prisma.config.ts` sudah memakai `env("DIRECT_URL")`, perintah di atas otomatis
+konek ke koneksi direct. Jalankan **sebelum** men-deploy kode yang butuh skema baru.
+
+### Alternatif — via Dokploy (one-off command / SSH)
+
+Kalau mau dari server, jalankan sekali di environment yang punya Node + repo:
+```bash
+DIRECT_URL="postgresql://...:5432/postgres" npx prisma migrate deploy
+```
+
+> 💡 Untuk deploy pertama ini kamu **tidak perlu** melakukan apa-apa — database sudah
+> ter-migrate di Supabase (`npx prisma migrate status` akan bilang "Database schema is up to date").
 
 ---
 
 ## 🩺 Troubleshooting
 
 ### ❌ Build gagal di step `npx prisma generate`
-- Cek `prisma/schema.prisma` valid
-- Pastikan `DATABASE_URL` di Dockerfile pakai dummy (build tidak perlu koneksi real)
+- Cek `prisma/schema.prisma` valid — di Prisma 7 blok `datasource` **tidak boleh** ada `url`/`directUrl` (dipindah ke `prisma.config.ts`)
+- `DATABASE_URL`/`DIRECT_URL` di Dockerfile pakai dummy (build tidak perlu koneksi real)
 
-### ❌ Container crash: `PrismaClientInitializationError`
-- `DATABASE_URL` salah / password salah / IP VPS belum di-whitelist Supabase (Supabase default terbuka, tapi cek Network Restrictions)
+### ❌ Build gagal: `supabaseUrl is required` / `Pakasir config is not valid!`
+- Client dibuat lazy, harusnya tidak muncul lagi. Kalau muncul, cek ada modul lain yang membuat client eksternal saat import (pindahkan ke pola lazy)
 
-### ❌ Migration gagal saat start container
+### ❌ Upload foto jalan di lokal tapi gagal/`undefined` di production
+- `NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_ANON_KEY` belum di-set sebagai **build-time variable** (lihat § 6b). Nilai NEXT_PUBLIC di-bake saat build — set runtime saja tidak cukup, harus rebuild dengan build args benar
+
+### ❌ Container crash: `PrismaClientInitializationError` / `ECONNREFUSED`
+- `DATABASE_URL` salah / password salah / IP VPS belum di-whitelist Supabase (cek **Network Restrictions** di Supabase)
+
+### ❌ `prisma migrate deploy` gagal (saat migrasi manual)
 - `DIRECT_URL` **wajib** port 5432 (bukan 6543)
 - Jangan pakai `?pgbouncer=true` di `DIRECT_URL`
-- Cek migrations tersinkron antara lokal dan remote — jalankan `npx prisma migrate status` lokal dulu untuk verifikasi
+- Cek migrations tersinkron: `npx prisma migrate status` dulu
 
 ### ❌ Upload foto ke Supabase Storage gagal
 - Bucket harus ada & RLS policy mengizinkan `anon` insert

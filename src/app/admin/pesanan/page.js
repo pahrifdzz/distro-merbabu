@@ -3,6 +3,8 @@ import TombolStatusPesanan from "@/components/TombolStatusPesanan";
 import TombolHapusPesanan from "@/components/TombolHapusPesanan";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPesananPage({ searchParams }) {
   const filter = searchParams?.filter || "semua";
 

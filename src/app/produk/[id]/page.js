@@ -3,6 +3,8 @@ import TombolKeranjang from "@/components/TombolKeranjang";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function DetailProduk({ params }) {
   const { id } = await params;
 
