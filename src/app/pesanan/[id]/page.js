@@ -62,25 +62,50 @@ export default function KonfirmasiPesanan() {
     }
   };
 
-  const cekStatusPembayaran = async () => {
-    setLoadingStatus(true);
+  // silent=true dipakai oleh auto-poll (tanpa alert & tanpa spinner tombol),
+  // silent=false dipakai tombol manual "Saya Sudah Bayar".
+  const cekStatusPembayaran = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoadingStatus(true);
 
-    const res = await fetch("/api/pakasir/status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pesananId: id }),
-    });
+      try {
+        const res = await fetch("/api/pakasir/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pesananId: id }),
+        });
 
-    const data = await res.json();
-    setLoadingStatus(false);
+        const data = await res.json();
 
-    if (data.paymentStatus === "paid") {
-      fetchPesanan();
-      alert("Pembayaran berhasil dikonfirmasi! ✅");
-    } else {
-      alert("Pembayaran belum diterima. Silakan coba lagi setelah membayar.");
-    }
-  };
+        if (data.paymentStatus === "paid") {
+          await fetchPesanan();
+          if (!silent) alert("Pembayaran berhasil dikonfirmasi! ✅");
+        } else if (!silent) {
+          alert(
+            "Pembayaran belum diterima. Silakan coba lagi setelah membayar.",
+          );
+        }
+      } catch (error) {
+        if (!silent) alert("Gagal cek status: " + error.message);
+      } finally {
+        if (!silent) setLoadingStatus(false);
+      }
+    },
+    [id, fetchPesanan],
+  );
+
+  // Fallback otomatis: selama QR tampil & pesanan belum lunas, cek status ke
+  // Pakasir tiap 5 detik supaya UI berpindah otomatis begitu pembayaran masuk
+  // (tanpa user harus klik tombol). Berhenti sendiri saat sudah lunas / unmount.
+  useEffect(() => {
+    if (!paymentData || pesanan?.paymentStatus === "paid") return;
+
+    const interval = setInterval(() => {
+      cekStatusPembayaran(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [paymentData, pesanan?.paymentStatus, cekStatusPembayaran]);
 
   const salin = (teks) => {
     navigator.clipboard.writeText(teks);
@@ -328,7 +353,7 @@ export default function KonfirmasiPesanan() {
 
                 {/* Tombol cek status */}
                 <button
-                  onClick={cekStatusPembayaran}
+                  onClick={() => cekStatusPembayaran(false)}
                   disabled={loadingStatus}
                   className="w-full bg-green-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition mb-2"
                 >

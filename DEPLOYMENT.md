@@ -166,13 +166,31 @@ Dokploy akan:
 
 ## 9️⃣ Konfigurasi Webhook Pakasir
 
-Setelah aplikasi live, buka dashboard [Pakasir](https://pakasir.com) → project → **Webhook URL**:
+> ⚠️ **Wajib diisi.** Kalau Webhook URL kosong, Pakasir **tidak pernah** memberi tahu
+> aplikasi saat pembayaran berhasil, sehingga status pesanan tidak berpindah otomatis
+> ke `diproses` dan admin terpaksa konfirmasi manual.
+
+Setelah aplikasi live, buka dashboard [Pakasir](https://pakasir.com) → project →
+**Edit Proyek** → isi **Webhook URL** dengan (samakan dengan `NEXTAUTH_URL`):
 
 ```
-https://distro.example.com/api/pakasir/webhook
+https://merbabuoutdoor.my.id/api/pakasir/webhook
 ```
 
 Ini yang akan di-hit saat pembayaran berhasil untuk update status pesanan.
+
+**Cara kerja & catatan penting:**
+
+- Pakasir mengirim `POST` dengan body: `{ amount, order_id, project, status, payment_method, completed_at }`.
+  Transaksi berhasil ditandai dengan **`status: "completed"`** (bukan `paid`/`success`).
+- Handler `/api/pakasir/webhook` memverifikasi `amount` cocok dengan total pesanan lalu
+  re-cek ke API `transactiondetail` sebelum menandai lunas (mencegah payload palsu).
+- **Fallback**: halaman `/pesanan/[id]` juga auto-polling ke `/api/pakasir/status` tiap 5 detik
+  selama QR tampil, jadi status tetap update otomatis walau webhook telat/belum aktif —
+  selama tab pembayaran user masih terbuka.
+- **Mode Sandbox vs Production**: di dashboard, `Mode` menentukan lingkungan transaksi.
+  Untuk uji end-to-end tanpa bayar nyata, gunakan endpoint simulasi `/api/pakasir/simulasi`
+  (memakai `simulationPayment` Pakasir) yang langsung menandai pesanan lunas.
 
 ---
 

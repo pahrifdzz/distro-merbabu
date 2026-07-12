@@ -24,26 +24,36 @@ export async function POST(request) {
       );
     }
 
-    // Cek status ke Pakasir
+    // Cek status ke Pakasir. detailPayment() mengembalikan objek flat dengan
+    // .status bernilai "pending" | "completed" | "canceled".
     const detail = await pakasir.detailPayment(
       pesanan.paymentOrderId,
       pesanan.total,
     );
 
-    // Update status kalau sudah dibayar
-    if (detail.payment?.status === "paid") {
+    const sudahLunas = detail.status === "completed";
+
+    // Idempotent: update DB hanya jika transaksi completed dan pesanan belum paid.
+    // Hanya naikkan pending → diproses, jangan turunkan pesanan yang sudah selesai.
+    if (sudahLunas && pesanan.paymentStatus !== "paid") {
       await prisma.pesanan.update({
         where: { id: pesanan.id },
         data: {
           paymentStatus: "paid",
-          status: "diproses",
+          ...(pesanan.status === "pending" ? { status: "diproses" } : {}),
         },
       });
     }
 
+    // Frontend mengecek `paymentStatus === "paid"`. Petakan status Pakasir
+    // "completed" ke "paid" agar konsisten dengan skema DB & UI.
+    const paymentStatus = sudahLunas ? "paid" : pesanan.paymentStatus;
+    const pesananStatus =
+      sudahLunas && pesanan.status === "pending" ? "diproses" : pesanan.status;
+
     return NextResponse.json({
-      paymentStatus: detail.payment?.status || pesanan.paymentStatus,
-      pesananStatus: pesanan.status,
+      paymentStatus,
+      pesananStatus,
     });
   } catch (error) {
     console.error(error);
