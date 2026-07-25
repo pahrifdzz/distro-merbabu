@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import supabase from "@/lib/supabase";
 
 const PILIHAN_UKURAN = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
@@ -58,27 +57,7 @@ export default function TambahProdukPage() {
     }
 
     setLoading(true);
-    let gambarUtama = null;
-    const urlFotos = [];
-
-    for (const foto of fotos) {
-      const namaFile = `${Date.now()}-${foto.file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("produk-images")
-        .upload(namaFile, foto.file);
-
-      if (uploadError) {
-        setError("Gagal upload foto: " + uploadError.message);
-        setLoading(false);
-        return;
-      }
-
-      const { data } = supabase.storage
-        .from("produk-images")
-        .getPublicUrl(namaFile);
-      urlFotos.push(data.publicUrl);
-      if (!gambarUtama) gambarUtama = data.publicUrl;
-    }
+    setError("");
 
     // Hitung total stok dari ukuran kalau ada
     const totalStok =
@@ -86,6 +65,7 @@ export default function TambahProdukPage() {
         ? ukurans.reduce((acc, u) => acc + u.stok, 0)
         : parseInt(form.stok) || 0;
 
+    // 1) Buat produk dulu (tanpa foto) supaya dapat id untuk target upload.
     const res = await fetch("/api/admin/produk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -95,8 +75,6 @@ export default function TambahProdukPage() {
         kategori: form.kategori,
         deskripsi: form.deskripsi,
         stok: totalStok,
-        gambar: gambarUtama,
-        fotos: urlFotos,
         ukurans,
       }),
     });
@@ -105,6 +83,33 @@ export default function TambahProdukPage() {
       setError("Gagal menambah produk");
       setLoading(false);
       return;
+    }
+
+    const produk = await res.json();
+
+    // 2) Upload foto lewat SERVER (route handler), bukan dari browser. Diproses
+    //    berurutan supaya foto pertama tetap jadi gambar utama. Anon key Supabase
+    //    dipakai di server → tidak perlu env NEXT_PUBLIC_* di bundle browser.
+    for (const foto of fotos) {
+      const formData = new FormData();
+      formData.append("file", foto.file);
+
+      const uploadRes = await fetch(`/api/admin/produk/${produk.id}/foto`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        const data = await uploadRes.json().catch(() => ({}));
+        setError(
+          "Produk tersimpan, tapi sebagian foto gagal diupload" +
+            (data.error ? `: ${data.error}` : ".") +
+            " Lengkapi foto lewat halaman produk.",
+        );
+        setLoading(false);
+        router.push("/admin/produk");
+        return;
+      }
     }
 
     router.push("/admin/produk");

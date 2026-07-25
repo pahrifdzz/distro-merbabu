@@ -106,24 +106,26 @@ EMAIL_PASS=<gmail-app-password>
 
 > 💡 Semua nilai **tidak boleh** dalam tanda kutip di panel Dokploy.
 
-### 6b. Build-time Variables (WAJIB) — tab **Environment** → **Build-time**
+### 6b. Supabase Storage — cukup runtime, TIDAK perlu build-time
 
-⚠️ **PENTING:** `NEXT_PUBLIC_*` di-**inline** ke dalam bundle JavaScript saat `next build`
-(bukan dibaca saat runtime). Jadi keduanya **HARUS** juga di-set sebagai **build-time
-variable** di Dokploy, kalau tidak fitur upload foto/bukti (Supabase Storage) akan rusak
-karena nilainya ter-bake `undefined`.
+✅ Upload foto (Supabase Storage) sekarang dijalankan dari **sisi server** dan env-nya
+dibaca saat **runtime** (`src/lib/supabase.js`). Jadi **tidak perlu** lagi mengeset
+build-time variable / build args untuk Supabase — cukup runtime **Environment** di §6a.
 
-Tambahkan sebagai **Build Args** (di Dokploy: tab **Environment**, aktifkan opsi
-"Add to build" / atau bagian **Build-time Variables**):
+> **Riwayat:** versi sebelumnya upload dilakukan dari browser, sehingga `NEXT_PUBLIC_*`
+> harus di-**inline** saat `next build` (butuh build args). Itu tidak berlaku lagi.
+
+Opsional (lebih rapi), kamu boleh memakai nama tanpa prefix `NEXT_PUBLIC_` karena
+nilainya kini hanya dipakai server:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=<anon-key>
 ```
 
-Dockerfile sudah menyiapkan `ARG NEXT_PUBLIC_SUPABASE_URL` dan
-`ARG NEXT_PUBLIC_SUPABASE_ANON_KEY` untuk menerima nilai ini saat build.
-(Aman di-expose — anon key & URL memang bersifat publik.)
+`src/lib/supabase.js` membaca `SUPABASE_URL`/`SUPABASE_ANON_KEY` lebih dulu, lalu fallback
+ke `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` — jadi setup lama tetap jalan
+tanpa perubahan. (Aman di-expose — anon key & URL memang bersifat publik.)
 
 ---
 
@@ -251,8 +253,9 @@ DIRECT_URL="postgresql://...:5432/postgres" npx prisma migrate deploy
 ### ❌ Build gagal: `supabaseUrl is required` / `Pakasir config is not valid!`
 - Client dibuat lazy, harusnya tidak muncul lagi. Kalau muncul, cek ada modul lain yang membuat client eksternal saat import (pindahkan ke pola lazy)
 
-### ❌ Upload foto jalan di lokal tapi gagal/`undefined` di production
-- `NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_ANON_KEY` belum di-set sebagai **build-time variable** (lihat § 6b). Nilai NEXT_PUBLIC di-bake saat build — set runtime saja tidak cukup, harus rebuild dengan build args benar
+### ❌ Upload foto gagal: `Konfigurasi Supabase tidak tersedia`
+- Env Supabase belum ter-set sebagai **Environment (runtime)** di Dokploy (lihat § 6a/§ 6b). Set `SUPABASE_URL` & `SUPABASE_ANON_KEY` (atau var `NEXT_PUBLIC_*` lama), lalu redeploy.
+- Upload dijalankan di server & env dibaca runtime — **tidak** perlu build-arg. Kalau dulu sempat set sebagai build-time variable, itu sudah tidak diperlukan.
 
 ### ❌ Container crash: `PrismaClientInitializationError` / `ECONNREFUSED`
 - `DATABASE_URL` salah / password salah / IP VPS belum di-whitelist Supabase (cek **Network Restrictions** di Supabase)
