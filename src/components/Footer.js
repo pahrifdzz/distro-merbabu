@@ -120,7 +120,7 @@ export default function Footer() {
                   Beranda
                 </Link>
                 <Link
-                  href="/produk"
+                  href="/"
                   style={{ color: "#cccccc" }}
                   className="text-sm hover:text-white transition"
                 >
