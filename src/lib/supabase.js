@@ -2,22 +2,43 @@ import { createClient } from "@supabase/supabase-js";
 
 let client;
 
+// Modul ini HANYA dipakai di sisi server (route handler) — upload foto tidak lagi
+// dari browser. Env dibaca saat RUNTIME, bukan di-bake saat `next build`, supaya
+// satu image bisa dipakai lintas environment TANPA build-arg.
+//
+// PENTING: baca lewat key VARIABEL (parameter `keys`), JANGAN `process.env.NEXT_PUBLIC_X`
+// atau `process.env["NEXT_PUBLIC_X"]` (key literal). Next meng-inline akses key-literal
+// ber-prefix NEXT_PUBLIC_ jadi nilai build-time yang beku; dengan key variabel Next
+// tidak bisa meng-inline sehingga nilainya benar-benar dibaca runtime dari process.env
+// Node (lihat docs Next env vars: "dynamic lookups will not be inlined"). Jangan ubah
+// ke akses key-literal. Nama non-public `SUPABASE_URL` didahulukan; `NEXT_PUBLIC_*`
+// lama tetap didukung sebagai fallback runtime.
+function envRuntime(...keys) {
+  for (const key of keys) {
+    const val = process.env[key];
+    if (val) return val;
+  }
+  return undefined;
+}
+
+function readSupabaseEnv() {
+  return {
+    url: envRuntime("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
+    anonKey: envRuntime("SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+  };
+}
+
 function getSupabase() {
   if (!client) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const { url, anonKey } = readSupabaseEnv();
 
-    // NEXT_PUBLIC_* di-INLINE ke bundle saat `next build`, BUKAN dibaca runtime.
-    // Kalau kosong di sini, build TIDAK menerima nilainya — di Dokploy keduanya
-    // wajib di-set sebagai "Build-time variable" (bukan cuma runtime Environment)
-    // lalu redeploy. Fail-fast dengan pesan jelas mengganti error minified bawaan
-    // supabase-js ("supabaseUrl is required") yang menyesatkan saat debugging.
+    // Fail-fast dengan pesan jelas mengganti error minified bawaan supabase-js
+    // ("supabaseUrl is required") yang menyesatkan saat debugging.
     if (!url || !anonKey) {
       throw new Error(
-        "Konfigurasi Supabase tidak tersedia di bundle. " +
-          "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY di-inline saat " +
-          "`next build`, jadi set keduanya sebagai BUILD-TIME variable di Dokploy " +
-          "lalu redeploy (set runtime Environment saja tidak cukup). Lihat DEPLOYMENT.md §6b.",
+        "Konfigurasi Supabase tidak tersedia. Set SUPABASE_URL & SUPABASE_ANON_KEY " +
+          "(atau NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY) sebagai " +
+          "Environment (runtime) variable di Dokploy lalu redeploy. Lihat DEPLOYMENT.md §6.",
       );
     }
 
