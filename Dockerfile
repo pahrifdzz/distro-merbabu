@@ -19,13 +19,10 @@ RUN npm ci --include=dev
 # Salin sisa source
 COPY . .
 
-# --- Build-time args ---
-# NEXT_PUBLIC_* di-INLINE ke dalam bundle saat `next build`, jadi WAJIB tersedia
-# di sini (bukan cuma sebagai runtime env). Isi lewat Dokploy "Build-time Variables".
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Catatan: Supabase (upload foto) sekarang dipanggil dari sisi SERVER dan env-nya
+# dibaca saat RUNTIME (lihat src/lib/supabase.js), jadi TIDAK perlu build-arg
+# NEXT_PUBLIC_SUPABASE_*. Cukup set SUPABASE_URL / SUPABASE_ANON_KEY (atau var
+# NEXT_PUBLIC_* lama) sebagai Environment runtime di Dokploy. Lihat DEPLOYMENT.md §6.
 
 # URL dummy: prisma generate & next build tidak butuh koneksi DB nyata
 # (query runtime lewat adapter; halaman DB-backed sudah force-dynamic).
