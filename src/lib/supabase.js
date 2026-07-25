@@ -4,10 +4,24 @@ let client;
 
 function getSupabase() {
   if (!client) {
-    client = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    // NEXT_PUBLIC_* di-INLINE ke bundle saat `next build`, BUKAN dibaca runtime.
+    // Kalau kosong di sini, build TIDAK menerima nilainya — di Dokploy keduanya
+    // wajib di-set sebagai "Build-time variable" (bukan cuma runtime Environment)
+    // lalu redeploy. Fail-fast dengan pesan jelas mengganti error minified bawaan
+    // supabase-js ("supabaseUrl is required") yang menyesatkan saat debugging.
+    if (!url || !anonKey) {
+      throw new Error(
+        "Konfigurasi Supabase tidak tersedia di bundle. " +
+          "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY di-inline saat " +
+          "`next build`, jadi set keduanya sebagai BUILD-TIME variable di Dokploy " +
+          "lalu redeploy (set runtime Environment saja tidak cukup). Lihat DEPLOYMENT.md §6b.",
+      );
+    }
+
+    client = createClient(url, anonKey);
   }
   return client;
 }
