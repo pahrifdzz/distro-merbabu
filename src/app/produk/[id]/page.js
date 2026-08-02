@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import TombolKeranjang from "@/components/TombolKeranjang";
+import GaleriFoto from "@/components/GaleriFoto";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 
@@ -48,53 +49,8 @@ export default async function DetailProduk({ params }) {
         </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-          {/* Kiri — Galeri foto */}
-          <div className="flex flex-col gap-3">
-            {/* Foto utama */}
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              {semuaFoto.length === 0 ? (
-                <div className="w-full aspect-square bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400 text-sm">Foto Produk</span>
-                </div>
-              ) : (
-                <div className="flex flex-col">
-                  {semuaFoto.map((url, index) => (
-                    <div
-                      key={index}
-                      className={index > 0 ? "border-t border-gray-100" : ""}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={`${item.nama} foto ${index + 1}`}
-                        className="w-full object-contain"
-                        style={{ maxHeight: "520px" }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Thumbnail kalau lebih dari 1 foto */}
-            {semuaFoto.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {semuaFoto.map((url, index) => (
-                  <div
-                    key={index}
-                    className="shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 border-gray-200"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={`thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Kiri — Galeri foto (satu foto tampil, thumbnail untuk ganti) */}
+          <GaleriFoto fotos={semuaFoto} nama={item.nama} />
 
           {/* Kanan — Info produk */}
           <div className="flex flex-col gap-5">

@@ -7,35 +7,45 @@ export default function GaleriFoto({ fotos, nama }) {
 
   if (fotos.length === 0) {
     return (
-      <div className="w-full md:w-64 h-56 md:h-64 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
-        <span className="text-gray-400 text-sm">Foto Produk</span>
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="w-full aspect-square bg-gray-100 flex items-center justify-center">
+          <span className="text-gray-400 text-sm">Foto Produk</span>
+        </div>
       </div>
     );
   }
 
+  // Jaga-jaga kalau jumlah foto berubah dan indeks lama di luar batas
+  const indeksAman = Math.min(fotoAktif, fotos.length - 1);
+
   return (
-    <div className="w-full md:w-64 shrink-0">
-      {/* Foto utama */}
-      <div className="w-full h-56 md:h-64 bg-gray-100 rounded-xl overflow-hidden mb-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={fotos[fotoAktif]}
-          alt={`${nama} foto ${fotoAktif + 1}`}
-          className="w-full h-full object-cover"
-        />
+    <div className="flex flex-col gap-3">
+      {/* Foto utama — hanya satu yang tampil dalam satu kotak */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="w-full aspect-square flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={fotos[indeksAman]}
+            alt={`${nama} foto ${indeksAman + 1}`}
+            className="w-full h-full object-contain"
+          />
+        </div>
       </div>
 
-      {/* Thumbnail kalau lebih dari 1 foto */}
+      {/* Thumbnail untuk mengganti foto (kotak kecil) */}
       {fotos.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {fotos.map((url, index) => (
             <button
               key={index}
+              type="button"
               onClick={() => setFotoAktif(index)}
-              className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition ${
-                fotoAktif === index
+              aria-label={`Lihat foto ${index + 1}`}
+              aria-current={indeksAman === index}
+              className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition ${
+                indeksAman === index
                   ? "border-black"
-                  : "border-transparent hover:border-gray-300"
+                  : "border-gray-200 hover:border-gray-400"
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
