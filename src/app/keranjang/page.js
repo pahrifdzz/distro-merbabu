@@ -96,7 +96,7 @@ export default function KeranjangPage() {
                     Rp {(item.harga * item.jumlah).toLocaleString("id-ID")}
                   </p>
                   <button
-                    onClick={() => hapusDariKeranjang(item.id)}
+                    onClick={() => hapusDariKeranjang(item.id, item.ukuran)}
                     className="text-xs text-red-400 hover:text-red-600 mt-1"
                   >
                     Hapus
